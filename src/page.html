@@ -143,6 +143,7 @@ a { color: inherit; }
   padding: 0 6px 0 4px; align-self: center;
 }
 .camctl { display: flex; gap: 6px; flex: none; }
+.rp-sub .seg { padding: 0; }
 .iconbtn {
   width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
   border: 1px solid rgba(18, 23, 27, 0.1); border-radius: 4px; background: var(--glass);
@@ -410,6 +411,79 @@ section h2 {
 .pin.me .mk { width: 16px; height: 16px; border-radius: 50%; background: #1a73e8; box-shadow: 0 0 0 3px #fff, 0 0 0 9px rgba(26, 115, 232, 0.22); }
 @media (max-width: 420px) { .timeline .via { padding-left: 72px; } }
 
+
+/* ───── View tabs ───── */
+.tabs { display: flex; gap: 2px; margin: 14px 0 0; background: var(--paper-2); padding: 3px; border-radius: 4px; }
+.tabs button { flex: 1; border: 0; background: none; cursor: pointer; padding: 8px 6px; border-radius: 3px;
+  font: 600 11px/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+body[data-tab="replay"] #labels, body[data-tab="light"] #labels,
+body[data-tab="replay"] .hud-tl, body[data-tab="light"] .hud-tl,
+body[data-tab="replay"] .hud-tr, body[data-tab="light"] .hud-tr,
+body[data-tab="replay"] #now, body[data-tab="light"] #now,
+body[data-tab="replay"] .sensors, body[data-tab="light"] .sensors { display: none !important; }
+.rp-check { display: none; }
+body[data-tab="replay"] .rp-check { display: block; font-size: 12.5px; color: var(--ink-2); background: var(--paper-2); border-radius: 3px; padding: 8px 10px; }
+.rp-check b { font: 600 10px/1.4 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); display: block; margin-bottom: 2px; }
+body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { display: none; }
+#threeStage { position: absolute; inset: 0; z-index: 7; background: var(--paper-2); }
+#threeCanvas { position: absolute; inset: 0; }
+#threeCanvas canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#threeMsg { position: absolute; inset: 0; display: grid; place-items: center; font: 500 13px/1.5 var(--f-body); color: var(--ink-2); padding: 24px; text-align: center; }
+#rpPins, #ltLabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.rp-pin { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; transform-origin: 0 0; margin: -10px 0 0 -10px; white-space: nowrap; }
+.rp-pin b { width: 20px; height: 20px; display: grid; place-items: center; background: var(--gg); color: #fff; font: 700 10.5px/1 var(--f-mono); box-shadow: 0 0 0 2px #fff; }
+.rp-pin span { font: 600 11px/1 var(--f-body); background: rgba(255, 255, 255, 0.92); color: var(--ink); padding: 4px 6px; border-radius: 2px; }
+.rp-top { top: 12px; left: max(12px, env(safe-area-inset-left, 0px)); padding: 10px 14px; }
+.rp-clock { font: 800 24px/1 var(--f-mono); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.rp-phase { margin-top: 6px; font: 600 10px/1.3 var(--f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.rp-phase::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #e7ecef; box-shadow: 0 0 0 1px var(--ink-3); }
+.rp-phase[data-phase="golden"]::before { background: #f2c78f; }
+.rp-phase[data-phase="blue"]::before { background: #7f93b3; }
+.rp-phase[data-phase="night"]::before { background: #1d2636; }
+.rp-bar { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: 14px; padding: 10px 14px 10px; display: grid; gap: 8px; }
+.rp-act { font: 600 13px/1.3 var(--f-body); }
+.rp-row { display: flex; align-items: center; gap: 12px; }
+.rp-sub { justify-content: space-between; }
+.rp-track { position: relative; flex: 1; min-width: 0; height: 30px; }
+#rpSky { position: absolute; left: 0; right: 0; top: 11px; width: 100%; height: 8px; border-radius: 4px; }
+#rpSlider { position: absolute; inset: 0; width: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+#rpSlider::-webkit-slider-runnable-track { height: 30px; background: transparent; }
+#rpSlider::-moz-range-track { height: 30px; background: transparent; }
+#rpSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 4px; height: 30px; background: var(--gg); border-radius: 2px; box-shadow: 0 0 0 2px #fff; }
+#rpSlider::-moz-range-thumb { width: 4px; height: 30px; background: var(--gg); border: 0; border-radius: 2px; box-shadow: 0 0 0 2px #fff; }
+.rp-ticks { position: absolute; left: 0; right: 0; top: -12px; height: 12px; pointer-events: none; }
+.rp-ticks .tk { position: absolute; transform: translateX(-50%); font: 700 9px/1 var(--f-mono); color: var(--gg); }
+.rp-ticks .tk.sunset { color: #b0702a; font-size: 11px; top: -1px; }
+.linkbtn { border: 0; background: none; cursor: pointer; font: 600 12px/1 var(--f-body); color: var(--ink); border-bottom: 1px solid var(--gg); padding: 2px 0; }
+.three-dark .rp-pin span { background: rgba(18, 23, 27, 0.85); color: #fff; }
+.lt-top { top: 12px; left: max(12px, env(safe-area-inset-left, 0px)); max-width: min(460px, calc(100% - 24px)); padding: 12px 14px; display: grid; gap: 8px; }
+.lt-title { font: 700 16px/1.25 var(--f-display); }
+.lt-verdict { font-size: 13px; color: var(--ink-2); }
+.lt-slide { display: grid; gap: 4px; font: 600 10px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.lt-slide input { width: 100%; accent-color: var(--gg); }
+.lt-c { position: absolute; left: 0; top: 0; margin: -8px 0 0 -6px; font: 700 12px/1 var(--f-display); font-stretch: 118%; color: var(--ink-2); }
+.lt-sun { position: absolute; left: 0; top: 0; margin: -18px 0 0 -22px; font: 700 10px/1 var(--f-mono); background: #f2a33a; color: #12171b; padding: 3px 5px; border-radius: 2px; }
+.lt-view { position: absolute; left: 0; top: 0; margin: -6px 0 0 -30px; font: 700 9.5px/1 var(--f-mono); letter-spacing: 0.12em; color: var(--gg); background: rgba(255,255,255,0.9); padding: 3px 5px; border-radius: 2px; }
+.three-dark .lt-c { color: #dfe6ea; }
+.lt-sunline { margin: 0 0 8px; font: 500 10.5px/1.5 var(--f-mono); color: var(--ink-2); }
+.lt-list { display: grid; border-top: 1px solid var(--rule); }
+.lt-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; text-align: left; border: 0; border-bottom: 1px solid var(--rule); background: none; cursor: pointer; padding: 10px 4px; }
+.lt-row.sel { background: linear-gradient(90deg, var(--gg-soft), transparent 70%); }
+.lt-name { font: 650 14px/1.25 var(--f-display); display: flex; gap: 8px; align-items: center; min-width: 0; }
+.lt-name b { width: 17px; height: 17px; flex: none; display: inline-grid; place-items: center; background: var(--gg); color: #fff; font: 700 9.5px/1 var(--f-mono); }
+.lt-meta { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); }
+.lt-strip { grid-column: 1 / -1; width: 100%; height: 30px; border-radius: 2px; }
+.chip-v { align-self: start; font: 600 9.5px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 6px; border-radius: 2px; white-space: nowrap; background: var(--paper-2); color: var(--ink); }
+.chip-v.into { background: #f2c78f; } .chip-v.front { background: #dfe9d6; } .chip-v.side { background: #e7ecef; }
+.chip-v.blue { background: #7f93b3; color: #fff; } .chip-v.dark { background: #1d2636; color: #fff; } .chip-v.soft, .chip-v.dim { background: #d4e0cc; }
+.stop.live { box-shadow: inset 3px 0 0 var(--gg); }
+@media (max-width: 860px) {
+  .rp-top { padding: 7px 10px; } .rp-clock { font-size: 18px; }
+  .rp-bar { bottom: 8px; padding: 8px 10px; }
+  .lt-top { padding: 9px 10px; }
+}
+
 /* split-flap (from God's Eye View, src/ui/styles/status.css) */
 /*@@FLAPCSS@@*/
 
@@ -447,6 +521,7 @@ section h2 {
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
+<script type="importmap">{"imports":{"three":"./three/three.module.min.js"}}</script>
 
 <div id="app">
   <div id="stage">
@@ -500,6 +575,47 @@ section h2 {
     </article>
 
     <div id="credits"></div>
+
+    <div id="threeStage" hidden>
+      <div id="threeCanvas"></div>
+      <div id="rpPins" aria-hidden="true"></div>
+      <div id="ltLabels" aria-hidden="true"></div>
+      <div id="threeMsg" hidden></div>
+
+      <div id="replayUi" hidden>
+        <div class="rp-top hud">
+          <div class="rp-clock" id="rpClock">—</div>
+          <div class="rp-phase" id="rpPhase">—</div>
+        </div>
+        <div class="rp-bar hud">
+          <div class="rp-act" id="rpAct" aria-live="polite">—</div>
+          <div class="rp-row">
+            <button class="btn" id="rpPlay"><svg viewBox="0 0 12 12"><path d="M3 1.5l7 4.5-7 4.5z"/></svg><span>Play</span></button>
+            <div class="rp-track">
+              <canvas id="rpSky" aria-hidden="true"></canvas>
+              <input type="range" id="rpSlider" min="360" max="1320" step="1" value="600" aria-label="Time of day">
+              <div class="rp-ticks" id="rpTicks"></div>
+            </div>
+          </div>
+          <div class="rp-row rp-sub">
+            <div class="seg" id="rpSpeed" role="group" aria-label="Playback speed">
+              <button data-speed="120" aria-pressed="false">2 min/s</button>
+              <button data-speed="300" aria-pressed="true">5 min/s</button>
+              <button data-speed="900" aria-pressed="false">15 min/s</button>
+            </div>
+            <button class="linkbtn" id="rpFollow">Follow the trip</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="lightUi" hidden>
+        <div class="lt-top hud">
+          <div class="lt-title" id="ltTitle">—</div>
+          <div class="lt-verdict" id="ltVerdict"></div>
+          <label class="lt-slide"><span>Move the sun</span><input type="range" id="ltSlider" min="360" max="1260" step="5" value="900"></label>
+        </div>
+      </div>
+    </div>
   </div>
 
   <aside id="dossier" aria-label="Trip dossier">
@@ -507,6 +623,11 @@ section h2 {
       <div class="eyebrow">Field dossier · San Francisco · 37°48′N 122°25′W</div>
       <h1>Operation <span>Fog</span> City</h1>
       <p>Matt &amp; Val's week in San Francisco. Pick a day, then a stop, and the satellite flies you there. The dots around each stop are food and odd little places worth a detour. Heart the ones you want and they land on our shared wishlist.</p>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Views">
+        <button role="tab" data-tab="globe" aria-selected="true">Globe</button>
+        <button role="tab" data-tab="replay" aria-selected="false">Day Replay</button>
+        <button role="tab" data-tab="light" aria-selected="false">Light &amp; Fog</button>
+      </nav>
       <div class="facts">
         <span><b>NOV 14–20</b> 2026</span>
         <span>BASE <b>KIMPTON ALTON</b></span>
@@ -527,6 +648,14 @@ section h2 {
         <button class="btn ghost" id="btnDay">Show the whole day</button>
       </div>
     </section>
+
+    <section id="lightPanel" hidden>
+      <h2><span>Light &amp; fog at each outdoor stop</span></h2>
+      <p class="lt-sunline" id="ltSun"></p>
+      <div class="lt-list" id="ltList"></div>
+      <p class="sharenote" id="ltSrc"></p>
+    </section>
+    <div class="rp-check" id="rpCheck"></div>
 
     <ol class="timeline" id="timeline"></ol>
 

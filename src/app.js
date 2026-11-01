@@ -36,27 +36,27 @@ const DAYS = [
     sub: 'Arrive, drop bags, then Presidio art, the Lands End trail and Sutro Baths for sunset.',
     stops: [
       { t: '9:30–11:30 AM', n: 'Wheels down → Kimpton Alton', lat: SFO.lat, lon: SFO.lon, range: 9000, d: 'Land at SFO, collect bags, rideshare to the hotel and leave luggage at the front desk before check-in.', also: HOTEL },
-      { via: 'drive', t: '11:30 AM', n: "Quick lunch at the Wharf", lat: 37.8080, lon: -122.4177, range: 900, d: 'Something simple near the hotel. Keep it short to save the afternoon light.' },
-      { via: 'drive', t: '12:15 PM', n: 'Palace of Fine Arts', lat: 37.8029, lon: -122.4484, must: true, range: 700, d: 'The rotunda, colonnades and lagoon, built for the 1915 Panama-Pacific Exposition. Outdoor architecture rather than a museum.' },
-      { via: 'walk', t: '1:05 PM', n: 'Yoda Fountain', lat: 37.7986, lon: -122.4497, must: true, range: 450, d: 'The bronze Yoda at Lucasfilm\'s One Letterman campus in the Presidio. Outdoors and open on weekends.' },
-      { via: 'walk', t: '1:35 PM', n: "Lovers' Lane + Wood Line", lat: 37.7931, lon: -122.4485, must: true, range: 650, d: "Walk part of the Presidio's oldest footpath to Andy Goldsworthy's Wood Line, eucalyptus trunks laid in a long curving line through the grove. Prioritize Wood Line over finishing the lane." },
+      { via: 'drive', t: '11:30 AM', n: "Quick lunch at the Wharf", until: '12:00 PM', lat: 37.8080, lon: -122.4177, range: 900, d: 'Something simple near the hotel. Keep it short to save the afternoon light.' },
+      { via: 'drive', t: '12:15 PM', n: 'Palace of Fine Arts', until: '12:55 PM', lat: 37.8029, lon: -122.4484, must: true, range: 700, d: 'The rotunda, colonnades and lagoon, built for the 1915 Panama-Pacific Exposition. Outdoor architecture rather than a museum.' },
+      { via: 'walk', t: '1:05 PM', n: 'Yoda Fountain', until: '1:30 PM', lat: 37.7986, lon: -122.4497, must: true, range: 450, d: 'The bronze Yoda at Lucasfilm\'s One Letterman campus in the Presidio. Outdoors and open on weekends.' },
+      { via: 'walk', t: '1:35 PM', n: "Lovers' Lane + Wood Line", until: '2:20 PM', lat: 37.7931, lon: -122.4485, must: true, range: 650, d: "Walk part of the Presidio's oldest footpath to Andy Goldsworthy's Wood Line, eucalyptus trunks laid in a long curving line through the grove. Prioritize Wood Line over finishing the lane." },
       { leg: true, t: '2:20 PM', n: 'Rideshare west to Lands End Lookout' },
-      { via: 'drive', t: '2:50 PM', n: 'Lands End Coastal Trail', lat: 37.7838, lon: -122.5081, must: true, range: 1500, d: 'Out-and-back toward Mile Rock for cypress, Pacific and Golden Gate views. Stairs and uneven ground. Turn around in time for the baths.' },
-      { via: 'walk', t: '3:55 PM', n: 'Sutro Baths + sunset', lat: 37.7804, lon: -122.5137, must: true, range: 700, d: 'Ruins of an 1896 bathhouse that once held seven pools. Sunset is about 4:58. Stay off the rocks and away from the surf.' },
-      { via: 'drive', t: '6:30 PM', n: 'Dinner: North Beach or the Wharf', lat: 37.8008, lon: -122.4101, flex: true, range: 900, d: 'Check in and freshen up, then North Beach for dinner. Pier 39 and Ghirardelli Square are easy add-ons near the hotel.' },
+      { via: 'drive', t: '2:50 PM', n: 'Lands End Coastal Trail', until: '3:55 PM', lat: 37.7838, lon: -122.5081, must: true, range: 1500, d: 'Out-and-back toward Mile Rock for cypress, Pacific and Golden Gate views. Stairs and uneven ground. Turn around in time for the baths.' },
+      { via: 'walk', t: '3:55 PM', n: 'Sutro Baths + sunset', until: '5:00 PM', lat: 37.7804, lon: -122.5137, must: true, range: 700, d: 'Ruins of an 1896 bathhouse that once held seven pools. Sunset is about 4:58. Stay off the rocks and away from the surf.' },
+      { via: 'drive', t: '6:30 PM', n: 'Dinner: North Beach or the Wharf', until: '9:00 PM', lat: 37.8008, lon: -122.4101, flex: true, range: 900, d: 'Check in and freshen up, then North Beach for dinner. Pier 39 and Ghirardelli Square are easy add-ons near the hotel.' },
     ] },
   { id: 'sun', dw: 'SUN', dn: 15, tag: 'Redwoods', out: true,
     title: 'Redwood road trip', eyebrow: 'Sunday · Marin County · Rental car',
     sub: 'Across the Golden Gate to the old-growth redwoods, the Pacific cliffs and Sausalito, then the classic bridge views.',
     stops: [
-      { t: '7:30 AM', n: 'Pick up the rental car', lat: AVIS.lat, lon: AVIS.lon, range: 700, d: 'Avis at Anchorage Square, 500 Beach St, a short walk from the hotel. Leave luggage and laptops at the hotel.' },
+      { t: '7:30 AM', n: 'Pick up the rental car', until: '8:00 AM', lat: AVIS.lat, lon: AVIS.lon, range: 700, d: 'Avis at Anchorage Square, 500 Beach St, a short walk from the hotel. Leave luggage and laptops at the hotel.' },
       { leg: true, t: '8:00 AM', n: 'North across the Golden Gate Bridge' },
-      { via: 'drive', t: '9:00 AM', n: 'Muir Woods', lat: 37.8916, lon: -122.5716, must: true, range: 2200, d: 'Main Trail along Redwood Creek through coast redwoods, some over 1,000 years old. About 90 minutes. Timed parking reservation required, and there\'s no signal.' },
-      { via: 'drive', t: '11:15 AM', n: 'Muir Beach Overlook', lat: 37.8622, lon: -122.5866, must: true, range: 1200, d: 'Cliff-top WWII lookout over the Pacific. Windy. Stay behind the rails.' },
-      { via: 'drive', t: '12:30 PM', n: 'Sausalito waterfront + lunch', lat: 37.8596, lon: -122.4848, range: 1000, d: 'Harbor walk on Bridgeway. Bar Bocce does pizza on the sand.' },
-      { via: 'drive', t: '2:00 PM', n: 'Battery Spencer', lat: 37.8277, lon: -122.4836, must: true, range: 1300, d: 'The classic elevated shot of the Golden Gate Bridge from the Marin Headlands. Parking is tight; allow extra time.' },
-      { via: 'drive', t: '3:00 PM', n: 'Bridge Welcome Center', lat: 37.8077, lon: -122.4752, must: true, range: 1100, d: 'Drive south across the bridge, see the exhibits and walk a stretch of the span if the weather allows.' },
-      { via: 'drive', t: '4:15 PM', n: 'Return the car + dinner', lat: AVIS.lat, lon: AVIS.lon, range: 800, d: 'Refuel, return the car to Avis during business hours, then an easy dinner before QCon.' },
+      { via: 'drive', t: '9:00 AM', n: 'Muir Woods', until: '10:45 AM', lat: 37.8916, lon: -122.5716, must: true, range: 2200, d: 'Main Trail along Redwood Creek through coast redwoods, some over 1,000 years old. About 90 minutes. Timed parking reservation required, and there\'s no signal.' },
+      { via: 'drive', t: '11:15 AM', n: 'Muir Beach Overlook', until: '11:45 AM', lat: 37.8622, lon: -122.5866, must: true, range: 1200, d: 'Cliff-top WWII lookout over the Pacific. Windy. Stay behind the rails.' },
+      { via: 'drive', t: '12:30 PM', n: 'Sausalito waterfront + lunch', until: '1:45 PM', lat: 37.8596, lon: -122.4848, range: 1000, d: 'Harbor walk on Bridgeway. Bar Bocce does pizza on the sand.' },
+      { via: 'drive', t: '2:00 PM', n: 'Battery Spencer', until: '2:45 PM', lat: 37.8277, lon: -122.4836, must: true, range: 1300, d: 'The classic elevated shot of the Golden Gate Bridge from the Marin Headlands. Parking is tight; allow extra time.' },
+      { via: 'drive', t: '3:00 PM', n: 'Bridge Welcome Center', until: '4:15 PM', lat: 37.8077, lon: -122.4752, must: true, range: 1100, d: 'Drive south across the bridge, see the exhibits and walk a stretch of the span if the weather allows.' },
+      { via: 'drive', t: '4:15 PM', n: 'Return the car + dinner', until: '6:00 PM', lat: AVIS.lat, lon: AVIS.lon, range: 800, d: 'Refuel, return the car to Avis during business hours, then an easy dinner before QCon.' },
     ] },
   { id: 'mon', dw: 'MON', dn: 16, tag: 'QCon',
     title: 'QCon begins', eyebrow: 'Monday · Conference · Evening out',
@@ -64,21 +64,21 @@ const DAYS = [
     stops: [
       { t: '7:15 AM', n: 'F-line streetcar to the Embarcadero', lat: 37.8077, lon: -122.4146, range: 900, d: 'The historic F Market & Wharves line runs from near the hotel along the waterfront. Badge pickup opens at 7:15.' },
       { via: 'streetcar', t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Keynote, sessions and the 6–7 PM social. On the agenda: The Harness Is the New Operating System, and a software-factory efficiency talk.' },
-      { via: 'drive', t: '7:15 PM', n: 'North Beach dinner', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
+      { via: 'drive', t: '7:15 PM', n: 'North Beach dinner', until: '9:00 PM', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
     ] },
   { id: 'tue', dw: 'TUE', dn: 17, tag: 'QCon',
     title: 'Conference & Chinatown', eyebrow: 'Tuesday · Conference · Evening out',
     sub: 'Day two at QCon, then dinner on Grant Avenue and a cable car if they\'re running.',
     stops: [
       { t: 'All day', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'AI systems, staff-plus engineering and distributed systems tracks.' },
-      { via: 'walk', t: '7:15 PM', n: 'Chinatown + cable cars', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
+      { via: 'walk', t: '7:15 PM', n: 'Chinatown + cable cars', until: '9:30 PM', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
     ] },
   { id: 'wed', dw: 'WED', dn: 18, tag: 'QCon',
     title: 'QCon finale', eyebrow: 'Wednesday · Conference · Evening out',
     sub: 'Last main conference day, then a pier full of antique arcade machines.',
     stops: [
       { t: 'All day', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Architecting for agents and engineering the developer experience.' },
-      { via: 'drive', t: '7:00 PM', n: 'Musée Mécanique', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
+      { via: 'drive', t: '7:00 PM', n: 'Musée Mécanique', until: '8:00 PM', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
     ] },
   { id: 'thu', dw: 'THU', dn: 19, tag: 'Training',
     title: 'Training + After Dark', eyebrow: 'Thursday · QCon training · Evening event',
@@ -92,7 +92,7 @@ const DAYS = [
     sub: 'The last workshop day, then two hours on the Bay at dusk.',
     stops: [
       { t: '9 AM–4 PM', n: 'QCon training day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 900, d: 'The Friday full-day workshop at the Hyatt Regency.' },
-      { via: 'streetcar', t: '5:30 PM', n: 'City Lights Cruise', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
+      { via: 'streetcar', t: '5:30 PM', n: 'City Lights Cruise', until: '7:30 PM', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
     ] },
 ];
 DAYS.forEach((d, di) => {
@@ -382,6 +382,7 @@ async function addSchematicImagery() {
       }
     }
   });
+  window.FC_MAPS = { regionCv, cityCv, regionRect, cityRect: [S, W, N, E] };
   const toUrl = (cv) => new Promise((ok) => cv.toBlob((b) => ok(URL.createObjectURL(b)), 'image/png'));
   const [ru, cu] = await Promise.all([toUrl(regionCv), toUrl(cityCv)]);
   const rect = (r) => C.Rectangle.fromDegrees(r[1], r[0], r[3], r[2]);
@@ -1040,6 +1041,7 @@ function renderDay() {
   }
   renderTimeline();
   renderPicks();
+  if (typeof window.onFcDay === 'function') window.onFcDay();
 }
 
 function renderTimeline() {

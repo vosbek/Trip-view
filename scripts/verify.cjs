@@ -23,6 +23,8 @@ const { chromium } = require('playwright');
   await shot('sutro', { width: 1440, height: 900 }, { hash: '#sat', wait: 20000, js: 'selectStop(0, 7)', after: 25000 });
   await shot('muir', { width: 1440, height: 900 }, { hash: '#sun', wait: 20000, js: 'selectStop(1, 2)', after: 25000 });
   await shot('phone', { width: 390, height: 844 }, { hash: '#sun', wait: 30000 });
+  await shot('replay', { width: 1440, height: 900 }, { hash: '#sat', wait: 25000, js: 'setTab("replay"); setTimeout(() => { Replay.t = 930; }, 6000)', after: 15000 });
+  await shot('light', { width: 1440, height: 900 }, { hash: '#sun', wait: 25000, js: 'setTab("light")', after: 12000 });
   require('fs').writeFileSync(`${out}/log.txt`, log.join('\n') + '\n');
   console.log(log.join('\n'));
   await b.close();
