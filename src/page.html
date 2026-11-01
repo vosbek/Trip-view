@@ -486,6 +486,28 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
   .lt-top { padding: 9px 10px; }
 }
 
+
+.stepper { display: inline-flex; gap: 6px; margin-left: auto; }
+.nowrow { display: flex; align-items: center; gap: 12px; }
+.nowtxt { min-width: 0; flex: 1; }
+.nowstep { display: flex; gap: 4px; flex: none; }
+.nowstep button { width: 34px; height: 34px; border: 1px solid var(--rule); background: var(--paper); border-radius: 3px; cursor: pointer; font: 700 18px/1 var(--f-mono); color: var(--ink); }
+.nowstep button:last-child { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.gm-hours { font-size: 12.5px; color: var(--ink); background: var(--paper-2); border-radius: 3px; padding: 7px 9px; margin: 8px 0; }
+.gm-hours b { font: 600 10px/1.4 var(--f-mono); letter-spacing: 0.1em; margin-right: 4px; }
+.gm-hours .gm-warn { color: var(--gg); font-size: 11px; }
+.gm-week { margin-top: 4px; font-size: 11.5px; color: var(--ink-2); }
+.gm-week summary { cursor: pointer; font: 600 10px/1.6 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.gm-src { display: block; margin-top: 3px; font: 500 9.5px/1.3 var(--f-mono); color: var(--ink-3); }
+.gm-sv, .gm-flyfig { margin: 8px 0; position: relative; border-radius: 3px; overflow: hidden; background: var(--paper-2); }
+.gm-sv img, .gm-video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.gm-sv figcaption, .gm-flyfig figcaption { position: absolute; left: 6px; bottom: 5px; font: 500 9.5px/1.2 var(--f-body); color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.85); }
+.gm-fly { margin: 8px 0 2px; }
+.gm-traffic { display: block; margin-top: 3px; font: 500 10px/1.4 var(--f-mono); color: var(--gg); font-style: normal; }
+.timeline .via { flex-wrap: wrap; }
+.timeline .via .gm-traffic { flex-basis: 100%; margin-top: 0; }
+#card { max-height: calc(100% - 160px); overflow-y: auto; }
+
 /* split-flap (from God's Eye View, src/ui/styles/status.css) */
 /*@@FLAPCSS@@*/
 
@@ -549,8 +571,16 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
     </div>
 
     <div class="hud" id="now" aria-live="polite">
-      <div class="k" id="nowKey">NOW SHOWING</div>
-      <span id="nowText">SAN FRANCISCO</span>
+      <div class="nowrow">
+        <div class="nowtxt">
+          <div class="k" id="nowKey">NOW SHOWING</div>
+          <span id="nowText">SAN FRANCISCO</span>
+        </div>
+        <div class="nowstep">
+          <button id="nowPrev" aria-label="Previous stop">‹</button>
+          <button id="nowNext" aria-label="Next stop">›</button>
+        </div>
+      </div>
     </div>
 
     <div class="sensors">
@@ -573,6 +603,7 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
       <div class="tip" id="cardTip"></div>
       <div class="meta" id="cardMeta"></div>
       <div class="social"><button class="heart" id="cardHeart" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M8 14s-5.5-3.4-5.5-7.3A3 3 0 0 1 8 4.6a3 3 0 0 1 5.5 2.1C13.5 10.6 8 14 8 14z"/></svg><span>Want to go</span></button><span class="who" id="cardWho"></span></div>
+      <div id="cardGoogle" hidden></div>
       <div class="links" id="cardLinks"></div>
     </article>
 
@@ -648,6 +679,10 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
       <div class="actions">
         <button class="btn" id="btnPlay"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg><span>Fly the day</span></button>
         <button class="btn ghost" id="btnDay">Show the whole day</button>
+        <span class="stepper">
+          <button class="btn ghost" id="btnPrev" aria-label="Previous stop">‹ Prev</button>
+          <button class="btn" id="btnNext" aria-label="Next stop">Next stop ›</button>
+        </span>
       </div>
     </section>
 

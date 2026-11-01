@@ -500,6 +500,28 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
   .lt-top { padding: 9px 10px; }
 }
 
+
+.stepper { display: inline-flex; gap: 6px; margin-left: auto; }
+.nowrow { display: flex; align-items: center; gap: 12px; }
+.nowtxt { min-width: 0; flex: 1; }
+.nowstep { display: flex; gap: 4px; flex: none; }
+.nowstep button { width: 34px; height: 34px; border: 1px solid var(--rule); background: var(--paper); border-radius: 3px; cursor: pointer; font: 700 18px/1 var(--f-mono); color: var(--ink); }
+.nowstep button:last-child { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.gm-hours { font-size: 12.5px; color: var(--ink); background: var(--paper-2); border-radius: 3px; padding: 7px 9px; margin: 8px 0; }
+.gm-hours b { font: 600 10px/1.4 var(--f-mono); letter-spacing: 0.1em; margin-right: 4px; }
+.gm-hours .gm-warn { color: var(--gg); font-size: 11px; }
+.gm-week { margin-top: 4px; font-size: 11.5px; color: var(--ink-2); }
+.gm-week summary { cursor: pointer; font: 600 10px/1.6 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.gm-src { display: block; margin-top: 3px; font: 500 9.5px/1.3 var(--f-mono); color: var(--ink-3); }
+.gm-sv, .gm-flyfig { margin: 8px 0; position: relative; border-radius: 3px; overflow: hidden; background: var(--paper-2); }
+.gm-sv img, .gm-video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.gm-sv figcaption, .gm-flyfig figcaption { position: absolute; left: 6px; bottom: 5px; font: 500 9.5px/1.2 var(--f-body); color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.85); }
+.gm-fly { margin: 8px 0 2px; }
+.gm-traffic { display: block; margin-top: 3px; font: 500 10px/1.4 var(--f-mono); color: var(--gg); font-style: normal; }
+.timeline .via { flex-wrap: wrap; }
+.timeline .via .gm-traffic { flex-basis: 100%; margin-top: 0; }
+#card { max-height: calc(100% - 160px); overflow-y: auto; }
+
 /* split-flap (from God's Eye View, src/ui/styles/status.css) */
 .gev-flap-host.gev-flap-active > .gev-flap-text {
   position: absolute;
@@ -683,8 +705,16 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
     </div>
 
     <div class="hud" id="now" aria-live="polite">
-      <div class="k" id="nowKey">NOW SHOWING</div>
-      <span id="nowText">SAN FRANCISCO</span>
+      <div class="nowrow">
+        <div class="nowtxt">
+          <div class="k" id="nowKey">NOW SHOWING</div>
+          <span id="nowText">SAN FRANCISCO</span>
+        </div>
+        <div class="nowstep">
+          <button id="nowPrev" aria-label="Previous stop">‹</button>
+          <button id="nowNext" aria-label="Next stop">›</button>
+        </div>
+      </div>
     </div>
 
     <div class="sensors">
@@ -707,6 +737,7 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
       <div class="tip" id="cardTip"></div>
       <div class="meta" id="cardMeta"></div>
       <div class="social"><button class="heart" id="cardHeart" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M8 14s-5.5-3.4-5.5-7.3A3 3 0 0 1 8 4.6a3 3 0 0 1 5.5 2.1C13.5 10.6 8 14 8 14z"/></svg><span>Want to go</span></button><span class="who" id="cardWho"></span></div>
+      <div id="cardGoogle" hidden></div>
       <div class="links" id="cardLinks"></div>
     </article>
 
@@ -782,6 +813,10 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
       <div class="actions">
         <button class="btn" id="btnPlay"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg><span>Fly the day</span></button>
         <button class="btn ghost" id="btnDay">Show the whole day</button>
+        <span class="stepper">
+          <button class="btn ghost" id="btnPrev" aria-label="Previous stop">‹ Prev</button>
+          <button class="btn" id="btnNext" aria-label="Next stop">Next stop ›</button>
+        </span>
       </div>
     </section>
 
@@ -2559,18 +2594,23 @@ function renderTimeline() {
   d.stops.forEach((s, i) => {
     if (s.leg) {
       const nx = nextReal(i), r = nx && routeFor(nx);
-      rows.push(el('li', { class: 'stop leg' }, el('button', { disabled: true, tabindex: '-1' }, [
+      rows.push(el('li', { class: 'stop leg', 'data-leg': nx ? nx.id : null }, el('button', { disabled: true, tabindex: '-1' }, [
         el('span', { class: 't', text: s.t }), el('span', { class: 'nm' }, [s.n, r ? el('span', { class: 'legmeta', text: legLabel(r) }) : null])])));
       return;
     }
     const prevRow = d.stops[i - 1];
     const r = routeFor(s);
     if (r && !(prevRow && prevRow.leg) && real.indexOf(s) > 0) {
-      rows.push(el('li', { class: 'via', 'aria-hidden': 'true' }, [el('span', { class: `vm ${r.mode}` }), legLabel(r)]));
+      rows.push(el('li', { class: 'via', 'data-leg': s.id }, [el('span', { class: `vm ${r.mode}`, 'aria-hidden': 'true' }), legLabel(r)]));
     }
     rows.push(stopRow(s));
   });
   list.replaceChildren(...rows);
+  if (typeof GM !== 'undefined' && GM.on) {
+    GM.legs(state.day);
+    const selStop = d.stops.find((x) => x.id === state.stop);
+    if (selStop) GM.stop(selStop);
+  }
 }
 function stopRow(s) {
   {
@@ -2582,6 +2622,7 @@ function stopRow(s) {
         el('span', { class: 'nm' }, [el('span', { text: s.n }), s.conf ? el('em', { class: 'conf', text: 'Conference' }) : s.must ? el('em', { text: 'Must-see' }) : s.flex ? el('em', { class: 'flex', text: 'Flexible' }) : null]),
         el('span', { class: 'ds', text: s.d }),
         sel && photoFor(s.id) ? figure('stopphoto', photoFor(s.id), s.n) : null,
+        sel ? el('div', { class: 'gm-stop', 'data-gm-stop': s.id }) : null,
       ]),
     ]));
     if (sel) {
@@ -2681,6 +2722,15 @@ function selectStop(di, si, { fly = true, fromTour = false } = {}) {
   if (fly && scene) flyToStop(s);
 }
 
+function stepStop(dir) {
+  const st = DAYS[state.day].stops.filter((s) => !s.leg);
+  let i = st.findIndex((s) => s.id === state.stop);
+  if (i < 0) i = dir > 0 ? -1 : st.length;
+  const j = i + dir;
+  if (j >= st.length) { if (state.day < DAYS.length - 1) { selectDay(state.day + 1, { fly: false }); const n = DAYS[state.day].stops.find((s) => !s.leg); selectStop(n.day, n.idx); } return; }
+  if (j < 0) { if (state.day > 0) { selectDay(state.day - 1, { fly: false }); const ps = DAYS[state.day].stops.filter((s) => !s.leg); const n = ps[ps.length - 1]; selectStop(n.day, n.idx); } return; }
+  selectStop(st[j].day, st[j].idx);
+}
 function openPlace(p) {
   state.place = p.id;
   const k = KIND[p.kind];
@@ -2702,6 +2752,7 @@ function openPlace(p) {
     const cr = $('#cardCredit'); cr.replaceChildren(ph.page ? el('a', { href: ph.page, target: '_blank', rel: 'noopener', text: `${ph.author} · ${ph.license}` }) : `${ph.author} · ${ph.license}`);
   } else fig.hidden = true;
   renderCardSocial();
+  if (typeof GM !== 'undefined') GM.placeCard(p);
   $('#card').hidden = false;
   if (scene) {
     stopAll();
@@ -2943,6 +2994,8 @@ function initUi() {
   $('#btnPlay').addEventListener('click', () => { if (tour.active) tour.cancel(); else if (scene) tour.play(state.day); });
   $('#btnDay').addEventListener('click', () => { tour.cancel(); state.stop = null; renderTimeline(); flyToDay(state.day); setNow(`${DAYS[state.day].dw} ${DAYS[state.day].dn} NOV`, DAYS[state.day].title); });
   $('#btnHome').addEventListener('click', () => flyHome());
+  ['#btnNext', '#nowNext'].forEach((q) => $(q).addEventListener('click', () => stepStop(1)));
+  ['#btnPrev', '#nowPrev'].forEach((q) => $(q).addEventListener('click', () => stepStop(-1)));
   $('#btnOrbit').addEventListener('click', () => {
     if (orbitOff) { stopOrbit(); return; }
     const W = scene.canvas.clientWidth, H = scene.canvas.clientHeight;
@@ -2976,6 +3029,8 @@ function initUi() {
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('input, textarea')) return;
     if (e.key === 'Escape') { closeCard(); stopAll(); }
+    if ((e.key === 'n' || e.key === 'N') && !e.metaKey && !e.ctrlKey) stepStop(1);
+    if ((e.key === 'p' || e.key === 'P') && !e.metaKey && !e.ctrlKey) stepStop(-1);
     if (e.key === 'ArrowRight' && e.altKey) selectDay((state.day + 1) % 7);
     if (e.key === 'ArrowLeft' && e.altKey) selectDay((state.day + 6) % 7);
   });
@@ -3841,6 +3896,165 @@ window.onFcDay = () => {
 };
 document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
 fetch('data/fogclimo.json').then((r) => (r.ok ? r.json() : null)).then((j) => { FOGCLIMO = j; if (TAB.current === 'light' && Light.group) Light.renderPanel(); }).catch(() => {});
+
+/* ───────────── Google extras on the hosted site: hours, Street View, traffic, flyovers ─────────────
+   All calls run in the visitor's browser with the site's website-restricted key, on demand,
+   and are kept only for the browser session. Inside the claude.ai link these hosts are blocked,
+   so none of this shows there. */
+var GM = (() => {
+  const on = !IN_CLAUDE && !GOOGLE_KEY.startsWith('__');
+  const memo = new Map();
+  const cache = (k, fn) => {
+    if (memo.has(k)) return memo.get(k);
+    let v = null;
+    try { const s = sessionStorage.getItem(`gm:${k}`); if (s) v = Promise.resolve(JSON.parse(s)); } catch { /* ignore */ }
+    if (!v) v = fn().then((r) => { try { sessionStorage.setItem(`gm:${k}`, JSON.stringify(r)); } catch { /* ignore */ } return r; });
+    v = v.catch((e) => { memo.delete(k); console.warn('google', k, e && e.message); return null; });
+    memo.set(k, v);
+    return v;
+  };
+  const json = async (url, opts = {}) => {
+    const r = await fetch(url, opts);
+    if (!r.ok) { const e = new Error(`${r.status}`); e.status = r.status; throw e; }
+    return r.json();
+  };
+  const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const tripWeekday = (di) => WD[(6 + di) % 7]; // Nov 14, 2026 is a Saturday
+
+  /* Street View Static: the arrival view. return_error_code makes "no imagery" a 404, so the image just hides. */
+  function streetView(lat, lon, cls, alt) {
+    if (!on) return null;
+    const src = `https://maps.googleapis.com/maps/api/streetview?size=640x360&location=${lat},${lon}&fov=85&radius=120&source=outdoor&return_error_code=true&key=${GOOGLE_KEY}`;
+    const img = el('img', { src, alt: `Street View near ${alt}`, loading: 'lazy' });
+    const fig = el('figure', { class: cls }, [img, el('figcaption', { text: 'Google Street View · what you will see arriving' })]);
+    img.addEventListener('error', () => fig.remove());
+    return fig;
+  }
+
+  /* Places API (New): opening hours for a food or gem dot. */
+  function hours(p) {
+    return cache(`h:${p.id}`, () => json('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY,
+        'X-Goog-FieldMask': 'places.displayName,places.businessStatus,places.regularOpeningHours.weekdayDescriptions,places.googleMapsUri' },
+      body: JSON.stringify({ textQuery: p.name.replace(/\(.*?\)/g, ''), maxResultCount: 1,
+        locationBias: { circle: { center: { latitude: p.lat, longitude: p.lon }, radius: 400 } } }),
+    }).then((d) => {
+      const x = d.places && d.places[0];
+      return x ? { name: x.displayName && x.displayName.text, status: x.businessStatus, week: (x.regularOpeningHours && x.regularOpeningHours.weekdayDescriptions) || null, url: x.googleMapsUri } : { none: true };
+    }));
+  }
+  async function placeCard(p) {
+    const box = $('#cardGoogle');
+    box.replaceChildren();
+    box.hidden = !on;
+    if (!on) return;
+    const sv = streetView(p.lat, p.lon, 'gm-sv', p.name);
+    box.append(el('div', { class: 'gm-hours', text: 'Checking today’s hours…' }));
+    if (sv) box.append(sv);
+    const h = await hours(p);
+    if (state.place !== p.id) return;
+    const hb = box.querySelector('.gm-hours');
+    if (!h || h.none) { hb.textContent = 'No hours found on Google for this spot.'; return; }
+    if (h.status && h.status !== 'OPERATIONAL') {
+      hb.replaceChildren(el('b', { class: 'gm-warn', text: h.status === 'CLOSED_TEMPORARILY' ? 'Temporarily closed' : 'Permanently closed' }), ' according to Google.');
+      return;
+    }
+    if (!h.week) { hb.textContent = 'No posted hours on Google (often means open all day).'; return; }
+    const di = p.near.s.day, wd = tripWeekday(di);
+    const line = h.week.find((w) => w.startsWith(wd)) || '';
+    const rest = line.replace(/^[A-Za-z]+:\s*/, '');
+    const all = el('details', { class: 'gm-week' }, [el('summary', { text: 'All week' }), ...h.week.map((w) => el('div', { text: w }))]);
+    hb.replaceChildren(el('b', { text: `${DAYS[di].dw} ${DAYS[di].dn} NOV` }), ` ${rest || 'not listed'}`, all, el('span', { class: 'gm-src', text: 'Hours from Google' }));
+  }
+
+  /* Routes API: traffic-aware drive time for the planned departure. */
+  function traffic(leg, departIso) {
+    return cache(`r:${leg.id}:${departIso}`, () => json('https://routes.googleapis.com/directions/v2:computeRoutes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'routes.duration,routes.staticDuration,routes.distanceMeters' },
+      body: JSON.stringify({
+        origin: { location: { latLng: { latitude: leg.from[1], longitude: leg.from[0] } } },
+        destination: { location: { latLng: { latitude: leg.to[1], longitude: leg.to[0] } } },
+        travelMode: 'DRIVE', routingPreference: 'TRAFFIC_AWARE_OPTIMAL', departureTime: departIso,
+      }),
+    }).then((d) => {
+      const r = d.routes && d.routes[0];
+      return r ? { min: Math.round(parseInt(r.duration, 10) / 60), base: Math.round(parseInt(r.staticDuration || r.duration, 10) / 60) } : null;
+    }));
+  }
+  async function legs(di) {
+    if (!on) return;
+    const sched = scheduleFor(di);
+    for (const L of sched.legs) {
+      if (L.mode === 'walk') continue;
+      const row = document.querySelector(`[data-leg="${L.to.id}"]`);
+      if (!row) continue;
+      const depart = new Date(dayMs(di, L.t0)).toISOString().replace(/\.\d+Z$/, 'Z');
+      const leg = { id: L.to.id, from: [L.from.lon, L.from.lat], to: [L.to.lon, L.to.lat] };
+      traffic(leg, depart).then((r) => {
+        if (!r || !row.isConnected) return;
+        const leave = L.t1 - r.min - 5;
+        let n = row.querySelector('.gm-traffic');
+        if (!n) { n = el('span', { class: 'gm-traffic' }); row.append(n); }
+        n.textContent = `Google traffic for ${fmtMin(L.t0)}: ${r.min} min${r.base && r.base !== r.min ? ` (${r.base} with no traffic)` : ''} · leave by ${fmtMin(leave)}`;
+      });
+    }
+  }
+
+  /* Aerial View API: cinematic flyover for a stop's address, when Google has rendered one. */
+  const ADDR = {
+    'sat-0': '2700 Jones St, San Francisco, CA 94133',
+    'sat-2': '3601 Lyon St, San Francisco, CA 94123',
+    'sat-3': '1 Letterman Dr, San Francisco, CA 94129',
+    'sat-6': '680 Point Lobos Ave, San Francisco, CA 94121',
+    'sat-7': '1004 Point Lobos Ave, San Francisco, CA 94121',
+    'sun-2': '1 Muir Woods Rd, Mill Valley, CA 94941',
+    'sun-4': '1250 Bridgeway, Sausalito, CA 94965',
+    'mon-1': '5 Embarcadero Center, San Francisco, CA 94111',
+    'wed-1': 'Pier 45, San Francisco, CA 94133',
+    'thu-1': 'Pier 15, San Francisco, CA 94111',
+    'fri-1': 'Pier 43 1/2, San Francisco, CA 94133',
+  };
+  const addrFor = (s) => ADDR[s.id] || (s.lat === HYATT.lat ? ADDR['mon-1'] : null);
+  function flyover(addr) {
+    return cache(`a:${addr}`, () => fetch(`https://aerialview.googleapis.com/v1/videos:lookupVideo?key=${GOOGLE_KEY}&address=${encodeURIComponent(addr)}`)
+      .then(async (r) => {
+        if (r.status === 404) {
+          // Ask Google to render one for next time (takes a few hours); only once per browser.
+          try {
+            if (!localStorage.getItem(`gm:render:${addr}`)) {
+              localStorage.setItem(`gm:render:${addr}`, '1');
+              fetch(`https://aerialview.googleapis.com/v1/videos:renderVideo?key=${GOOGLE_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: addr }) }).catch(() => {});
+            }
+          } catch { /* ignore */ }
+          return { none: true };
+        }
+        if (!r.ok) throw new Error(String(r.status));
+        const d = await r.json();
+        const u = d.uris && (d.uris.MP4_HIGH || d.uris.MP4_MEDIUM || d.uris.MP4_LOW);
+        return d.state === 'ACTIVE' && u ? { src: u.landscapeUri } : { none: true, state: d.state };
+      }));
+  }
+  async function stop(s) {
+    const host = document.querySelector(`[data-gm-stop="${s.id}"]`);
+    if (!host || !on) return;
+    const sv = streetView(s.lat, s.lon, 'gm-sv', s.n);
+    if (sv) host.append(sv);
+    const addr = addrFor(s);
+    if (!addr) return;
+    const f = await flyover(addr);
+    if (!f || f.none || !host.isConnected) return;
+    const btn = el('button', { class: 'linkbtn gm-fly', text: '▶ Watch Google’s flyover' });
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const v = el('video', { src: f.src, controls: true, autoplay: true, muted: true, playsinline: true, class: 'gm-video' });
+      btn.replaceWith(el('figure', { class: 'gm-flyfig' }, [v, el('figcaption', { text: 'Google Aerial View' })]));
+    });
+    host.prepend(btn);
+  }
+  return { on, placeCard, legs, stop };
+})();
 
 </script>
 

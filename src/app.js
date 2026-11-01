@@ -1096,18 +1096,23 @@ function renderTimeline() {
   d.stops.forEach((s, i) => {
     if (s.leg) {
       const nx = nextReal(i), r = nx && routeFor(nx);
-      rows.push(el('li', { class: 'stop leg' }, el('button', { disabled: true, tabindex: '-1' }, [
+      rows.push(el('li', { class: 'stop leg', 'data-leg': nx ? nx.id : null }, el('button', { disabled: true, tabindex: '-1' }, [
         el('span', { class: 't', text: s.t }), el('span', { class: 'nm' }, [s.n, r ? el('span', { class: 'legmeta', text: legLabel(r) }) : null])])));
       return;
     }
     const prevRow = d.stops[i - 1];
     const r = routeFor(s);
     if (r && !(prevRow && prevRow.leg) && real.indexOf(s) > 0) {
-      rows.push(el('li', { class: 'via', 'aria-hidden': 'true' }, [el('span', { class: `vm ${r.mode}` }), legLabel(r)]));
+      rows.push(el('li', { class: 'via', 'data-leg': s.id }, [el('span', { class: `vm ${r.mode}`, 'aria-hidden': 'true' }), legLabel(r)]));
     }
     rows.push(stopRow(s));
   });
   list.replaceChildren(...rows);
+  if (typeof GM !== 'undefined' && GM.on) {
+    GM.legs(state.day);
+    const selStop = d.stops.find((x) => x.id === state.stop);
+    if (selStop) GM.stop(selStop);
+  }
 }
 function stopRow(s) {
   {
@@ -1119,6 +1124,7 @@ function stopRow(s) {
         el('span', { class: 'nm' }, [el('span', { text: s.n }), s.conf ? el('em', { class: 'conf', text: 'Conference' }) : s.must ? el('em', { text: 'Must-see' }) : s.flex ? el('em', { class: 'flex', text: 'Flexible' }) : null]),
         el('span', { class: 'ds', text: s.d }),
         sel && photoFor(s.id) ? figure('stopphoto', photoFor(s.id), s.n) : null,
+        sel ? el('div', { class: 'gm-stop', 'data-gm-stop': s.id }) : null,
       ]),
     ]));
     if (sel) {
@@ -1218,6 +1224,15 @@ function selectStop(di, si, { fly = true, fromTour = false } = {}) {
   if (fly && scene) flyToStop(s);
 }
 
+function stepStop(dir) {
+  const st = DAYS[state.day].stops.filter((s) => !s.leg);
+  let i = st.findIndex((s) => s.id === state.stop);
+  if (i < 0) i = dir > 0 ? -1 : st.length;
+  const j = i + dir;
+  if (j >= st.length) { if (state.day < DAYS.length - 1) { selectDay(state.day + 1, { fly: false }); const n = DAYS[state.day].stops.find((s) => !s.leg); selectStop(n.day, n.idx); } return; }
+  if (j < 0) { if (state.day > 0) { selectDay(state.day - 1, { fly: false }); const ps = DAYS[state.day].stops.filter((s) => !s.leg); const n = ps[ps.length - 1]; selectStop(n.day, n.idx); } return; }
+  selectStop(st[j].day, st[j].idx);
+}
 function openPlace(p) {
   state.place = p.id;
   const k = KIND[p.kind];
@@ -1239,6 +1254,7 @@ function openPlace(p) {
     const cr = $('#cardCredit'); cr.replaceChildren(ph.page ? el('a', { href: ph.page, target: '_blank', rel: 'noopener', text: `${ph.author} · ${ph.license}` }) : `${ph.author} · ${ph.license}`);
   } else fig.hidden = true;
   renderCardSocial();
+  if (typeof GM !== 'undefined') GM.placeCard(p);
   $('#card').hidden = false;
   if (scene) {
     stopAll();
@@ -1480,6 +1496,8 @@ function initUi() {
   $('#btnPlay').addEventListener('click', () => { if (tour.active) tour.cancel(); else if (scene) tour.play(state.day); });
   $('#btnDay').addEventListener('click', () => { tour.cancel(); state.stop = null; renderTimeline(); flyToDay(state.day); setNow(`${DAYS[state.day].dw} ${DAYS[state.day].dn} NOV`, DAYS[state.day].title); });
   $('#btnHome').addEventListener('click', () => flyHome());
+  ['#btnNext', '#nowNext'].forEach((q) => $(q).addEventListener('click', () => stepStop(1)));
+  ['#btnPrev', '#nowPrev'].forEach((q) => $(q).addEventListener('click', () => stepStop(-1)));
   $('#btnOrbit').addEventListener('click', () => {
     if (orbitOff) { stopOrbit(); return; }
     const W = scene.canvas.clientWidth, H = scene.canvas.clientHeight;
@@ -1513,6 +1531,8 @@ function initUi() {
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('input, textarea')) return;
     if (e.key === 'Escape') { closeCard(); stopAll(); }
+    if ((e.key === 'n' || e.key === 'N') && !e.metaKey && !e.ctrlKey) stepStop(1);
+    if ((e.key === 'p' || e.key === 'P') && !e.metaKey && !e.ctrlKey) stepStop(-1);
     if (e.key === 'ArrowRight' && e.altKey) selectDay((state.day + 1) % 7);
     if (e.key === 'ArrowLeft' && e.altKey) selectDay((state.day + 6) % 7);
   });
