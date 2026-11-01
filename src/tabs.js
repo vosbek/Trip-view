@@ -537,8 +537,10 @@ const Replay = {
     const { sp, ph } = World.setSun(THREE, dayMs(state.day, this.t), loc.pos);
     if (this.follow) {
       const tgt = T.controls.target;
-      const k = snap ? 1 : 0.06;
+      const k = snap ? 1 : 0.08;
+      const before = tgt.clone();
       tgt.lerp(loc.pos, k);
+      T.camera.position.add(tgt.clone().sub(before)); // carry the camera along with the trip
       if (snap) { T.camera.position.set(loc.pos.x + 14, loc.pos.y + 16, loc.pos.z + 22); }
     }
     // HUD
