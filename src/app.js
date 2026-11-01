@@ -661,6 +661,7 @@ const satHeights = new Map();
 const hkey = (lon, lat) => `${lon.toFixed(5)},${lat.toFixed(5)}`;
 function groundAt(lon, lat) {
   if (!satellite) return demHeight(lon, lat);
+  if (mapMode === 'google') { const g = googleHeights.get(hkey(lon, lat)); if (g !== undefined) return g; }
   const k = satHeights.get(hkey(lon, lat));
   if (k !== undefined) return k;
   const h = scene.globe.getHeight(C.Cartographic.fromDegrees(lon, lat));
@@ -677,6 +678,11 @@ async function sampleSatHeights() {
 /* ───── Satellite link: Esri imagery + keyless terrain, exactly as God's Eye View
    uses them. Inside the shared page these hosts are blocked, so we stay schematic. */
 const ESRI_URL = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer';
+// Browser-visible Google Maps key for Photorealistic 3D Tiles. Restrict it to this site's referrer
+// and the Map Tiles API in Google Cloud; it only works where the page can reach tile.googleapis.com.
+const GOOGLE_KEY = '__GOOGLE_KEY__';
+let mapMode = 'drawn', google3d = null, googleOk = null;
+const googleHeights = new Map();
 const REEARTH_TERRAIN = 'https://terrain.reearth.land/cesium-mesh/ellipsoid';
 let satAvailable = false;
 function probeSatellite() {
@@ -684,8 +690,8 @@ function probeSatellite() {
   let done = false;
   const finish = (ok) => {
     if (done) return; done = true; satAvailable = ok; renderLinkChip(); renderLayerPanel();
-    let pref = null; try { pref = localStorage.getItem('fogcity.sat'); } catch { /* ignore */ }
-    if (ok && pref !== 'off') setSatellite(true);
+    let pref = null; try { pref = localStorage.getItem('fogcity.map'); } catch { /* ignore */ }
+    if (ok) setMapMode(pref || 'google');
   };
   img.onload = () => finish(true);
   img.onerror = () => finish(false);
@@ -726,9 +732,50 @@ async function setSatellite(on) {
   renderLinkChip();
   renderLayerPanel();
 }
+
+async function sampleGoogleHeights() {
+  const pts = [...STOPS, ...PLACES];
+  try {
+    const res = await scene.sampleHeightMostDetailed(pts.map((p) => C.Cartographic.fromDegrees(p.lon, p.lat)));
+    res.forEach((c, i) => { if (c && Number.isFinite(c.height)) googleHeights.set(hkey(pts[i].lon, pts[i].lat), c.height); });
+  } catch (e) { console.warn('3D tile height sampling failed', e); }
+}
+async function setMapMode(mode) {
+  if (mode === mapMode) return;
+  if (mode === 'google' && GOOGLE_KEY.startsWith('__')) { googleOk = false; return setMapMode('satellite'); }
+  if (mode === 'google') {
+    if (!google3d) {
+      try {
+        google3d = await C.createGooglePhotorealistic3DTileset({ key: GOOGLE_KEY, onlyUsingWithGoogleGeocoder: true },
+          { cacheBytes: (LOW ? 256 : 768) * 1024 * 1024, maximumScreenSpaceError: LOW ? 24 : 12 });
+        scene.primitives.add(google3d);
+        googleOk = true;
+      } catch (e) {
+        console.warn('Google 3D tiles unavailable, using satellite imagery', e);
+        googleOk = false;
+        return setMapMode('satellite');
+      }
+    }
+    await setSatellite(true);
+    mapMode = 'google';
+    google3d.show = true;
+    scene.globe.show = false;
+    sampleGoogleHeights().then(() => { pins.forEach((p) => { p.h = null; }); drawDayRoute(state.day); });
+  } else {
+    if (google3d) google3d.show = false;
+    scene.globe.show = true;
+    mapMode = mode;
+    await setSatellite(mode === 'satellite');
+  }
+  pins.forEach((p) => { p.h = null; });
+  drawDayRoute(state.day);
+  applyLayerVisibility();
+  renderLinkChip();
+  renderLayerPanel();
+}
 function renderLinkChip() {
   const chip = $('#link');
-  const text = satellite ? 'SAT LINK · ESRI' : satAvailable ? 'SCHEMATIC · SAT READY' : 'SCHEMATIC · OSM';
+  const text = mapMode === 'google' ? 'GOOGLE 3D · LIVE' : satellite ? 'SAT LINK · ESRI' : satAvailable ? 'SCHEMATIC · SAT READY' : 'SCHEMATIC · OSM';
   setSplitFlapText(chip, text);
   chip.classList.toggle('live', satellite);
 }
@@ -737,10 +784,6 @@ function renderLinkChip() {
 const SENSORS = [
   { id: 'day', label: 'Day', shader: null },
   { id: 'story', label: 'Storybook', shader: animeShader },
-  { id: 'noir', label: 'Noir', shader: noirShader },
-  { id: 'nvg', label: 'NVG', shader: nightVisionShader, dark: true, pre: 0.42, set: { gain: 0.1, bloom: 0.15 } },
-  { id: 'flir', label: 'FLIR', shader: thermalShader, dark: true, pre: 0.62, set: { palette: 1, sensitivity: 0.9, mode: 0 } },
-  { id: 'crt', label: 'CRT', shader: retroShader, dark: true, set: { pixelation: 3 } },
 ];
 let stage = null;
 const t0 = performance.now();
@@ -1131,19 +1174,23 @@ function renderLayerPanel() {
     label,
     counts[id] ? el('span', { class: 'ct', text: String(counts[id]) }) : null,
   ]));
-  if (satAvailable) {
-    rows.push(el('label', {}, [
-      el('input', { type: 'checkbox', id: 'layer-sat', checked: satellite, onchange: (e) => { try { localStorage.setItem('fogcity.sat', e.target.checked ? 'on' : 'off'); } catch { /* ignore */ } setSatellite(e.target.checked); } }),
-      'Satellite imagery',
-    ]));
-  }
   host.replaceChildren(...rows);
+  const mm = $('#mapModes');
+  if (satAvailable) {
+    const opts = [['google', '3D city'], ['satellite', 'Satellite'], ['drawn', 'Drawn map']].filter(([id]) => id !== 'google' || googleOk !== false);
+    mm.replaceChildren(...opts.map(([id, label]) => el('button', { 'aria-pressed': String(mapMode === id), onclick: () => {
+      try { localStorage.setItem('fogcity.map', id); } catch { /* ignore */ }
+      setMapMode(id);
+    } }, label)));
+    mm.hidden = false;
+  } else mm.hidden = true;
 }
 function saveLayers() { try { localStorage.setItem('fogcity.layers', JSON.stringify(state.layers)); } catch { /* ignore */ } }
 function applyLayerVisibility() {
   for (const k of ['route', 'routeWalk', 'routeDrive']) if (prims[k]) prims[k].show = state.layers.route;
   if (prims.hoods) prims.hoods.show = state.layers.hoods && !satellite;
   if (prims.tall) prims.tall.show = state.layers.buildings && !satellite;
+  if (prims.bridge) prims.bridge.show = prims.cables.show = mapMode !== 'google';
   if (scene && CITY && !!fogStage !== !!state.layers.fog) setFog(state.layers.fog);
 }
 

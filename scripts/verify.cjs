@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
     await p.goto(url + (opts.query || '') + (opts.hash || ''), { waitUntil: 'load' });
     await p.waitForTimeout(opts.wait || 30000);
     if (opts.js) { await p.evaluate(opts.js); await p.waitForTimeout(opts.after || 20000); }
-    const info = await p.evaluate(() => ({ sat: typeof satellite !== 'undefined' && satellite, routes: typeof ROUTES !== 'undefined' ? Object.keys(ROUTES).length : -1, weather: typeof WEATHER !== 'undefined' && !!WEATHER, now: document.querySelector('#nowText')?.textContent, loop: typeof widget !== 'undefined' && widget.useDefaultRenderLoop, cam: typeof camera !== 'undefined' && Math.round(camera.positionCartographic.height), chip: document.querySelector('#link')?.textContent }));
+    const info = await p.evaluate(() => ({ sat: typeof satellite !== 'undefined' && satellite, map: typeof mapMode !== 'undefined' && mapMode, routes: typeof ROUTES !== 'undefined' ? Object.keys(ROUTES).length : -1, weather: typeof WEATHER !== 'undefined' && !!WEATHER, now: document.querySelector('#nowText')?.textContent, loop: typeof widget !== 'undefined' && widget.useDefaultRenderLoop, cam: typeof camera !== 'undefined' && Math.round(camera.positionCartographic.height), chip: document.querySelector('#link')?.textContent }));
     log.push(`${name} ${JSON.stringify(info)}`);
     await p.screenshot({ path: `${out}/${name}.png`, timeout: 120000 });
     await ctx.close();

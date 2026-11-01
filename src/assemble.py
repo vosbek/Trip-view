@@ -5,7 +5,7 @@ def strip(src):
     src = re.sub(r"^import .*?;\s*$", "", src, flags=re.M)
     src = src.replace("export const", "const").replace("export function", "function")
     return re.sub(r"\bmsg\(", "String(", src)
-shaders = "\n".join(strip((R/f'src/styles/{n}.js').read_text()) for n in ['thermal','surveillance','retro','noir','anime'])
+shaders = "\n".join(strip((R/f'src/styles/{n}.js').read_text()) for n in ['anime'])
 flap = strip((R/'src/splitFlap.js').read_text())
 css = (R/'src/ui/styles/status.css').read_text().splitlines()
 start = next(i for i,l in enumerate(css) if l.startswith('.gev-flap-host.gev-flap-active'))

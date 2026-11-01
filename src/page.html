@@ -144,6 +144,8 @@ a { color: inherit; }
 }
 .camctl { display: flex; gap: 6px; flex: none; }
 .rp-sub .seg { padding: 0; }
+.mapmodes { margin: 0 0 8px; background: var(--paper-2); border-radius: 4px; }
+.mapmodes button { flex: 1; }
 .iconbtn {
   width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
   border: 1px solid rgba(18, 23, 27, 0.1); border-radius: 4px; background: var(--glass);
@@ -678,6 +680,7 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
 
     <section>
       <h2><span>Map layers</span></h2>
+      <div class="seg mapmodes" id="mapModes" role="group" aria-label="Map style" hidden></div>
       <div class="layers" id="layers"></div>
     </section>
 
@@ -693,7 +696,7 @@ body[data-tab="light"] .timeline, body[data-tab="light"] .dayhead .actions { dis
     </section>
 
     <footer class="foot">
-      <p>Built on <a href="https://github.com/bilawalsidhu/gods-eye-view" target="_blank" rel="noopener">God's Eye View</a> by Bilawal Sidhu (MIT): the Cesium globe setup, sensor shaders, split-flap board, sky and SF neighborhood outlines come from it.</p>
+      <p>Built on <a href="https://github.com/bilawalsidhu/gods-eye-view" target="_blank" rel="noopener">God's Eye View</a> by Bilawal Sidhu (MIT): the Cesium globe setup, the keyless satellite and terrain sources, the storybook shader, split-flap board, sky and SF neighborhood outlines come from it. The 3D city is Google Photorealistic 3D Tiles.</p>
       <p>Schematic city: OpenStreetMap contributors (ODbL) via <a href="https://github.com/hausfath/sf-train-set" target="_blank" rel="noopener">sf-train-set</a>, SRTM elevation, US Census county outlines, DataSF neighborhoods, Natural Earth. Satellite view: Esri World Imagery and Re:Earth terrain, when the page can reach them.</p>
       <p>Hours and closures were checked on Nov 1, 2026. Lines between stops show order, not the road route.</p>
     </footer>

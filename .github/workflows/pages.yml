@@ -50,6 +50,17 @@ jobs:
             git pull --rebase -q origin main && git push || echo "Could not push fetched data; the deploy still uses it."
           fi
 
+      - name: Add the Google Maps key for the 3D city (from the GOOGLE_MAPS_KEY secret)
+        env:
+          GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
+        run: |
+          if [ -n "$GOOGLE_MAPS_KEY" ]; then
+            python3 -c "import os,pathlib; p=pathlib.Path('site/index.html'); p.write_text(p.read_text().replace('__GOOGLE_KEY__', os.environ['GOOGLE_MAPS_KEY']))"
+            echo "3D city enabled"
+          else
+            echo "No GOOGLE_MAPS_KEY secret; the site will use satellite imagery"
+          fi
+
       - uses: actions/configure-pages@v5
         continue-on-error: true
         with:
