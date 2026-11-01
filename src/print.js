@@ -7,7 +7,10 @@ const VIA_WORD = { walk: 'Walk', drive: 'Rideshare or drive', streetcar: 'Street
 
 function printTime(s) {
   if (!s.until) return s.t;
-  return `${s.t} – ${s.until}`;
+  // "11:30 AM" + "12:00 PM" stays as is; "1:05 PM" + "1:30 PM" becomes "1:05–1:30 PM"
+  const a = s.t.match(/^(.*\d)\s*(AM|PM)$/), b = s.until.match(/(AM|PM)$/);
+  if (a && b && a[2] === b[1]) return `${a[1]}–${s.until}`;
+  return `${s.t}–${s.until}`;
 }
 function firstSentence(t) { const m = t.match(/^.*?[.!?](\s|$)/); return m ? m[0].trim() : t; }
 
@@ -65,7 +68,7 @@ function buildPrintDoc() {
         return;
       }
       const r = routeFor(s);
-      const how = s.via ? (r ? legLabel(r) : VIA_WORD[s.via] || s.via) : '';
+      const how = s.via ? (r ? legLabel(r).replace(' · ', '\n') : VIA_WORD[s.via] || s.via) : '';
       const tags = [s.must && 'Must', s.conf && 'Conference', s.flex && 'Flexible'].filter(Boolean);
       rows.push(el('tr', { class: s.conf ? 'pd-conf' : '' }, [
         el('td', { class: 'pd-num pd-time', text: printTime(s) }),
@@ -143,5 +146,15 @@ function closePrint() {
     // wait for the routes so travel times are filled in
     const go = () => (Object.keys(ROUTES).length || performance.now() > 6000 ? openPrint() : setTimeout(go, 200));
     go();
+  }
+  // if the routes arrive after the sheet opened, refill the travel times
+  {
+    let had = Object.keys(ROUTES).length > 0, tries = 0;
+    const iv = setInterval(() => {
+      const has = Object.keys(ROUTES).length > 0;
+      if (has && !had && !$('#printView').hidden) buildPrintDoc();
+      had = has;
+      if (has || ++tries > 60) clearInterval(iv);
+    }, 500);
   }
 })();

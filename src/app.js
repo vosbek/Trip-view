@@ -1181,13 +1181,14 @@ function renderLayerPanel() {
     counts[id] ? el('span', { class: 'ct', text: String(counts[id]) }) : null,
   ]));
   host.replaceChildren(...rows);
-  const mm = $('#mapModes');
+  // map style lives on the map, next to the sensor looks
+  const mm = $('#mapSeg');
   if (satAvailable) {
-    const opts = [['google', '3D city'], ['satellite', 'Satellite'], ['drawn', 'Drawn map']].filter(([id]) => id !== 'google' || googleOk !== false);
-    mm.replaceChildren(...opts.map(([id, label]) => el('button', { 'aria-pressed': String(mapMode === id), onclick: () => {
+    const opts = [['google', '3D city', '3D'], ['satellite', 'Satellite', 'Sat'], ['drawn', 'Drawn map', 'Drawn']].filter(([id]) => id !== 'google' || googleOk !== false);
+    mm.replaceChildren(el('span', { class: 'seg-label', text: 'MAP' }), ...opts.map(([id, label, short]) => el('button', { 'aria-pressed': String(mapMode === id), 'aria-label': label, title: label, onclick: () => {
       try { localStorage.setItem('fogcity.map', id); } catch { /* ignore */ }
       setMapMode(id);
-    } }, label)));
+    } }, [el('span', { class: 'lg', text: label }), el('span', { class: 'sh', text: short })])));
     mm.hidden = false;
   } else mm.hidden = true;
 }
@@ -1281,7 +1282,7 @@ function closeCard() { state.place = null; $('#card').hidden = true; }
 
 function renderSensors() {
   const seg = $('#sensorSeg');
-  for (const s of SENSORS) seg.append(el('button', { 'data-id': s.id, 'aria-pressed': String(s.id === state.sensor), onclick: () => setSensor(s.id), text: s.label }));
+  for (const s of SENSORS) seg.append(el('button', { 'data-id': s.id, 'aria-pressed': String(s.id === state.sensor), onclick: () => setSensor(s.id) }, [el('span', { class: 'lg', text: s.label }), el('span', { class: 'sh', text: s.id === 'story' ? 'Story' : s.label })]));
 }
 
 
