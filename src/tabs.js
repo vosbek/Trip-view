@@ -73,14 +73,12 @@ function setTab(id) {
   if (!globeOn) { stopAll(); closeCard(); }
   $('#threeStage').hidden = globeOn;
   $('#replayUi').hidden = id !== 'replay';
-  $('#lightUi').hidden = id !== 'light';
-  $('#lightPanel').hidden = id !== 'light';
-  if (!globeOn) ensureThree().then(() => (id === 'replay' ? Replay.enter() : Light.enter())).catch((e) => {
+  if (!globeOn) ensureThree().then(() => Replay.enter()).catch((e) => {
     console.error(e);
     $('#threeMsg').hidden = false;
     $('#threeMsg').textContent = 'This view needs WebGL and could not start here.';
   });
-  else { Replay.leave(); Light.leave(); }
+  else Replay.leave();
 }
 
 /* ───────────────────────── three.js plumbing ───────────────────────── */
@@ -140,7 +138,7 @@ function buildPost(THREE) {
   T.rtB = new THREE.WebGLRenderTarget(2, 2);
   const vs = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
   const fs = `
-    uniform sampler2D tex; uniform vec2 dir; uniform float focus; uniform float band; uniform float amount; uniform float finalPass;
+    uniform sampler2D tex; uniform vec2 dir; uniform float focus; uniform float band; uniform float amount; uniform float finalPass; uniform vec3 grade;
     varying vec2 vUv;
     void main(){
       float d = smoothstep(band * 0.35, band, abs(vUv.y - focus));
@@ -151,12 +149,13 @@ function buildPost(THREE) {
       if (finalPass > 0.5) {
         float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
         c.rgb = mix(vec3(l), c.rgb, 1.12);
+        c.rgb *= grade;
         vec2 q = vUv - 0.5; c.rgb *= 1.0 - dot(q, q) * 0.45;
       }
       gl_FragColor = c;
     }`;
   const mk = () => new THREE.ShaderMaterial({ vertexShader: vs, fragmentShader: fs, depthTest: false, depthWrite: false,
-    uniforms: { tex: { value: null }, dir: { value: new THREE.Vector2() }, focus: { value: 0.46 }, band: { value: 0.4 }, amount: { value: 1 }, finalPass: { value: 0 } } });
+    uniforms: { tex: { value: null }, dir: { value: new THREE.Vector2() }, focus: { value: 0.46 }, band: { value: 0.4 }, amount: { value: 1 }, finalPass: { value: 0 }, grade: { value: new THREE.Vector3(1, 1, 1) } } });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mk());
   const scene = new THREE.Scene(); scene.add(quad);
   T.post = { quad, scene, cam: new THREE.Camera(), h: mk(), v: mk(), tilt: 1 };
@@ -401,22 +400,113 @@ const World = {
   },
 };
 
+/* ───────────────────────── Google Photorealistic 3D Tiles in three.js ─────────────────────────
+   Only on the hosted site, where the deploy adds the key. Tiles stream straight from Google into the
+   visitor's browser and are never stored. The tileset is placed so that scene units match the model
+   city (1 = 100 m, x east, z south, y up), so the route, pins and traveller work on either map. */
+const G3 = {
+  tiles: null, wrap: null, ready: null, ok: null, ray: null, credit: '', creditT: 0,
+  available() { return typeof GM !== 'undefined' && !!GM && GM.on && this.ok !== false; },
+  start() {
+    if (this.ready) return this.ready;
+    this.ready = (async () => {
+      const THREE = TAB.three;
+      const L = await import('./three/tiles.js');
+      const tiles = new L.TilesRenderer();
+      tiles.registerPlugin(new L.GoogleCloudAuthPlugin({ apiToken: GOOGLE_KEY, autoRefreshToken: true }));
+      const draco = new L.DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+      tiles.registerPlugin(new L.GLTFExtensionsPlugin({ dracoLoader: draco }));
+      tiles.registerPlugin(new L.TileCompressionPlugin());
+      tiles.registerPlugin(new L.TilesFadePlugin());
+      tiles.errorTarget = LOW ? 14 : 6;
+      // east-north-up frame at the city origin, then turned so north is −z and scaled to 100 m units
+      const R = Math.PI / 180, o = CITY.origin, g = tiles.group;
+      tiles.ellipsoid.getObjectFrame(o.lat0 * R, o.lon0 * R, 0, 0, 0, 0, g.matrix, 2 /* OBJECT_FRAME */);
+      g.matrix.invert().decompose(g.position, g.quaternion, g.scale);
+      const wrap = new THREE.Group();
+      wrap.rotation.y = Math.PI; wrap.scale.setScalar(0.01);
+      wrap.add(g); T.scene.add(wrap); wrap.updateMatrixWorld(true);
+      tiles.setCamera(T.camera);
+      tiles.setResolutionFromRenderer(T.camera, T.renderer);
+      this.tiles = tiles; this.wrap = wrap;
+      this.ray = new THREE.Raycaster(); this.ray.firstHitOnly = true;
+      await new Promise((res, rej) => {
+        const to = setTimeout(() => rej(new Error('Google 3D tiles timed out')), 25000);
+        tiles.addEventListener('load-tile-set', () => {
+          clearTimeout(to);
+          // swap once the first ring of tiles is on screen, not to an empty sky
+          const t0 = performance.now();
+          const wait = () => (tiles.visibleTiles.size > 12 || performance.now() - t0 > 6000 ? res() : setTimeout(wait, 150));
+          wait();
+        });
+        tiles.addEventListener('load-error', (e) => { if (!tiles.root) { clearTimeout(to); rej(e.error || new Error('Google 3D tiles failed')); } });
+      });
+      this.ok = true;
+    })().catch((e) => {
+      console.warn('google 3d tiles', e && e.message);
+      this.ok = false;
+      if (this.wrap) this.wrap.visible = false;
+      throw e;
+    });
+    return this.ready;
+  },
+  update(load, show) {
+    if (!this.tiles) return;
+    this.wrap.visible = show;
+    if (!load) return;
+    T.camera.updateMatrixWorld();
+    this.tiles.setResolutionFromRenderer(T.camera, T.renderer);
+    this.tiles.update();
+    const now = performance.now();
+    if (now - this.creditT > 1000) {
+      this.creditT = now;
+      const a = []; this.tiles.getAttributions(a);
+      const txt = a.filter((x) => x.type === 'string').map((x) => x.value).join(' ');
+      if (txt !== this.credit) { this.credit = txt; $('#rpCredit').textContent = `Google${txt ? ` · ${txt}` : ''}`; }
+    }
+  },
+  // lat/lon/ellipsoid height (m) → scene position
+  pos(lon, lat, h, v = new TAB.three.Vector3()) {
+    const R = Math.PI / 180;
+    return this.tiles.ellipsoid.getCartographicToPosition(lat * R, lon * R, h, v).applyMatrix4(this.tiles.group.matrixWorld);
+  },
+  // height of the photoreal surface under a scene point, or null if nothing has loaded there yet
+  groundY(x, z) {
+    if (!this.tiles || !this.ok) return null;
+    const THREE = TAB.three;
+    this.ray.set(new THREE.Vector3(x, 80, z), new THREE.Vector3(0, -1, 0));
+    const hit = this.ray.intersectObject(this.tiles.group, true)[0];
+    return hit ? hit.point.y : null;
+  },
+};
+
 /* ───────────────────────── Day Replay ───────────────────────── */
 const Replay = {
   t: 600, playing: false, speed: 300, sched: null, token: null, routeGroup: null, follow: true, entered: false,
+  map: 'model', live: 'model', k: 1, frame: 0, pending: false,
   enter() {
-    const THREE = TAB.three;
-    T.active = this; T.post.tilt = 1;
-    World.group.visible = true; if (Light.group) Light.group.visible = false;
-    if (!this.entered) { this.entered = true; this.initUi(); }
-    this.load(state.day, true);
+    T.active = this;
+    if (!this.entered) {
+      this.entered = true;
+      this.map = G3.available() ? 'google' : 'model';
+      this.initUi();
+    }
+    this.applyMap(true);
   },
   leave() { this.playing = false; this.renderPlayBtn && this.renderPlayBtn(); },
   initUi() {
     $('#rpPlay').addEventListener('click', () => { this.playing = !this.playing; if (this.playing && this.t >= this.sched.last + 30) this.t = this.sched.first - 20; this.renderPlayBtn(); });
+    $('#rpPrev').addEventListener('click', () => this.step(-1));
+    $('#rpNext').addEventListener('click', () => this.step(1));
     document.querySelectorAll('#rpSpeed button').forEach((b) => b.addEventListener('click', () => {
       this.speed = +b.dataset.speed;
       document.querySelectorAll('#rpSpeed button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    }));
+    const maps = $('#rpMap');
+    maps.hidden = !G3.available();
+    maps.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.map === this.map) return;
+      this.map = b.dataset.map; this.applyMap(false);
     }));
     const sl = $('#rpSlider');
     sl.addEventListener('input', () => { this.t = +sl.value; this.playing = false; this.renderPlayBtn(); this.follow = true; });
@@ -427,8 +517,38 @@ const Replay = {
       $('#rpPlay').querySelector('svg').innerHTML = this.playing ? '<path d="M3 2h2.5v8H3zM6.5 2H9v8H6.5z"/>' : '<path d="M3 1.5l7 4.5-7 4.5z"/>';
     };
   },
-  load(di, reset) {
+  /* Model city or Google's photoreal city. Everything else (route, pins, clock) is shared. */
+  applyMap(reset) {
+    const want = this.map === 'google';
+    document.querySelectorAll('#rpMap button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.map === this.map)));
+    if (want && !G3.ok && !this.pending) {
+      // keep the model city up while Google's tiles stream in, then swap
+      this.pending = true;
+      $('#rpCredit').textContent = 'Loading Google’s 3D city…';
+      G3.start().then(() => { this.pending = false; if (this.map === 'google') this.applyMap(false); }).catch(() => {
+        this.pending = false; this.map = 'model'; $('#rpMap').hidden = true; this.applyMap(false);
+      });
+    }
+    const google = want && G3.ok === true;
+    this.live = google ? 'google' : 'model';
+    $('#rpCredit').hidden = !want;
+    World.group.visible = !google;
+    T.post.tilt = google ? 0.45 : 1;
+    T.camera.near = google ? 0.03 : 0.1; T.camera.updateProjectionMatrix();
+    T.controls.minDistance = google ? 0.5 : 3;
+    this.load(state.day, reset, true);
+  },
+  // ground under a lon/lat on whichever map is showing
+  base(lon, lat) {
     const THREE = TAB.three;
+    if (this.live === 'google') return G3.pos(lon, lat, demHeight(lon, lat) + GEOID_SF);
+    const [x, z] = World.toXZ(lon, lat);
+    return new THREE.Vector3(x, World.y(lon, lat), z);
+  },
+  load(di, reset, snap = true) {
+    const THREE = TAB.three;
+    const google = this.live === 'google';
+    const k = (this.k = google ? 0.4 : 1);
     this.sched = scheduleFor(di);
     const sl = $('#rpSlider');
     const lo = Math.max(300, Math.floor((this.sched.first - 45) / 30) * 30), hi = Math.min(1439, Math.ceil((this.sched.last + 45) / 30) * 30);
@@ -436,59 +556,130 @@ const Replay = {
     if (reset || this.t < lo || this.t > hi) this.t = this.sched.first - 15;
     this.drawTrack(di);
     // route tubes + stop pins
-    if (this.routeGroup) { World.group.remove(this.routeGroup); this.routeGroup.traverse((m) => { m.geometry && m.geometry.dispose(); }); }
+    if (this.routeGroup) { T.scene.remove(this.routeGroup); this.routeGroup.traverse((m) => { m.geometry && m.geometry.dispose(); }); }
     const g = new THREE.Group();
-    const orange = new THREE.MeshBasicMaterial({ color: 0xc0362c });
-    const walkMat = new THREE.MeshBasicMaterial({ color: 0xe8806f });
+    const over = { depthTest: !google, depthWrite: !google, transparent: google };
+    const orange = new THREE.MeshBasicMaterial({ color: 0xc0362c, ...over });
+    const walkMat = new THREE.MeshBasicMaterial({ color: google ? 0xffffff : 0xe8806f, ...over });
     this.paths = [];
     for (const leg of this.sched.legs) {
       const r = ROUTES[leg.to.id];
       const ll = r && r.coords && r.coords.length > 1 ? r.coords : [[leg.from.lon, leg.from.lat], [leg.to.lon, leg.to.lat]];
-      const pts = ll.map(([lon, lat]) => { const [x, z] = World.toXZ(lon, lat); return new THREE.Vector3(x, World.y(lon, lat) + 0.12, z); });
-      if (!r) { // straight hop: arc it so it reads as "as the crow flies"
+      const pts = ll.map(([lon, lat]) => this.base(lon, lat).add(new THREE.Vector3(0, 0.12 * k, 0)));
+      const crow = !r;
+      if (crow) { // straight hop: arc it so it reads as "as the crow flies"
         const a = pts[0], b = pts[1], mid = a.clone().lerp(b, 0.5); mid.y += Math.min(6, a.distanceTo(b) * 0.15);
         pts.splice(1, 0, mid);
       }
-      const path = new THREE.CurvePath();
-      for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(pts[i - 1], pts[i]));
-      const segs = Math.min(600, pts.length * 2 + 8);
-      g.add(new THREE.Mesh(new THREE.TubeGeometry(path, segs, leg.mode === 'walk' ? 0.07 : 0.1, 5), leg.mode === 'walk' ? walkMat : orange));
-      this.paths.push({ leg, path, len: path.getLength() });
+      const P = { leg, pts, ll: crow ? null : ll, mat: leg.mode === 'walk' ? walkMat : orange, rad: (leg.mode === 'walk' ? 0.07 : 0.1) * k, mesh: null };
+      this.buildPath(P);
+      g.add(P.mesh);
+      this.paths.push(P);
     }
     this.pinEls = [];
     const host = $('#rpPins'); host.replaceChildren();
     for (const it of this.sched.items) {
-      const s = it.s, [x, z] = World.toXZ(s.lon, s.lat), y = World.y(s.lon, s.lat);
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.4, 6), orange);
-      stem.position.set(x, y + 1.2, z); g.add(stem);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), orange);
-      head.position.set(x, y + 2.45, z); g.add(head);
+      const s = it.s, b = this.base(s.lon, s.lat);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035 * k, 0.035 * k, 2.4 * k, 6), orange);
+      stem.position.set(b.x, b.y + 1.2 * k, b.z); g.add(stem);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.16 * k, 12, 8), orange);
+      head.position.set(b.x, b.y + 2.45 * k, b.z); g.add(head);
       const n = el('div', { class: 'rp-pin' }, [el('b', { text: String(s.num) }), el('span', { text: s.n })]);
       host.append(n);
-      this.pinEls.push({ n, v: new THREE.Vector3(x, y + 2.7, z), s });
+      this.pinEls.push({ n, v: new THREE.Vector3(b.x, b.y + 2.7 * k, b.z), s, stem, head, y0: b.y, fixed: false });
     }
+    g.traverse((m) => { if (m.isMesh) m.renderOrder = google ? 10 : 0; });
     // the traveller
-    if (!this.token) {
-      const car = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.62), new THREE.MeshLambertMaterial({ color: 0x12171b }));
-      body.position.y = 0.14; car.add(body);
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.32), new THREE.MeshLambertMaterial({ color: 0xc0362c }));
-      roof.position.set(0, 0.28, -0.03); car.add(roof);
-      const walker = new THREE.Group();
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.34, 10), new THREE.MeshLambertMaterial({ color: 0xc0362c }));
-      torso.position.y = 0.2; walker.add(torso);
-      const headM = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 8), new THREE.MeshLambertMaterial({ color: 0x12171b }));
-      headM.position.y = 0.44; walker.add(headM);
-      const halo = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 40), new THREE.MeshBasicMaterial({ color: 0xc0362c, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
-      halo.rotation.x = -Math.PI / 2; halo.position.y = 0.03;
-      const token = new THREE.Group(); token.add(car, walker, halo);
-      token.traverse((m) => { if (m.isMesh) m.castShadow = true; });
-      token.scale.setScalar(1.6);
-      this.token = { g: token, car, walker, halo };
-      T.scene.add(token);
+    if (!this.token) this.makeToken(THREE);
+    const tk = this.token;
+    tk.g.scale.setScalar(google ? 0.55 : 1.6);
+    tk.g.traverse((m) => { if (m.isMesh) { m.material.depthTest = !google; m.renderOrder = google ? 11 : 0; } });
+    T.scene.add(g); this.routeGroup = g;
+    this.refineAt = 0; this.refineIdx = 0; this.passes = 0;
+    this.place(snap);
+  },
+  buildPath(P) {
+    const THREE = TAB.three;
+    const path = new THREE.CurvePath();
+    for (let i = 1; i < P.pts.length; i++) path.add(new THREE.LineCurve3(P.pts[i - 1], P.pts[i]));
+    const segs = Math.min(600, P.pts.length * 2 + 8);
+    const geo = new THREE.TubeGeometry(path, segs, P.rad, 5);
+    if (P.mesh) { P.mesh.geometry.dispose(); P.mesh.geometry = geo; } else P.mesh = new THREE.Mesh(geo, P.mat);
+    P.path = path; P.len = path.getLength();
+  },
+  makeToken(THREE) {
+    const car = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.62), new THREE.MeshLambertMaterial({ color: 0x12171b }));
+    body.position.y = 0.14; car.add(body);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.32), new THREE.MeshLambertMaterial({ color: 0xc0362c }));
+    roof.position.set(0, 0.28, -0.03); car.add(roof);
+    const walker = new THREE.Group();
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.34, 10), new THREE.MeshLambertMaterial({ color: 0xc0362c }));
+    torso.position.y = 0.2; walker.add(torso);
+    const headM = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 8), new THREE.MeshLambertMaterial({ color: 0x12171b }));
+    headM.position.y = 0.44; walker.add(headM);
+    const halo = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 40), new THREE.MeshBasicMaterial({ color: 0xc0362c, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+    halo.rotation.x = -Math.PI / 2; halo.position.y = 0.03;
+    const token = new THREE.Group(); token.add(car, walker, halo);
+    token.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    this.token = { g: token, car, walker, halo };
+    T.scene.add(token);
+  },
+  /* On the Google map the first heights are estimates (Marin has no elevation in the city pack).
+     As tiles stream in, drop the route and pins onto the real surface, a few rays per frame. */
+  refine() {
+    if (this.live !== 'google' || this.passes >= 6) return;
+    const now = performance.now();
+    if (now < this.refineAt) return;
+    let budget = LOW ? 5 : 14;
+    const k = this.k;
+    while (budget > 0 && this.refineIdx < this.paths.length + 1) {
+      if (this.refineIdx === this.paths.length) { // pins last
+        for (const p of this.pinEls) {
+          const y = G3.groundY(p.v.x, p.v.z); budget--;
+          if (y === null) continue;
+          p.stem.position.y = y + 1.2 * k; p.head.position.y = y + 2.45 * k; p.v.y = y + 2.7 * k;
+        }
+        this.refineIdx++;
+        break;
+      }
+      const P = this.paths[this.refineIdx];
+      let changed = false;
+      const n = P.pts.length;
+      for (let i = 0; i < n; i++) {
+        if (P.ll === null && i === 1) continue; // arc midpoint stays in the air
+        const y = G3.groundY(P.pts[i].x, P.pts[i].z); budget--;
+        if (y !== null && Math.abs(y + 0.12 * k - P.pts[i].y) > 0.03) { P.pts[i].y = y + 0.12 * k; changed = true; }
+      }
+      if (changed) this.buildPath(P);
+      this.refineIdx++;
     }
-    World.group.add(g); this.routeGroup = g;
-    this.place(true);
+    if (this.refineIdx > this.paths.length) { this.refineIdx = 0; this.passes++; this.refineAt = now + 4000; } // go again as finer tiles arrive
+  },
+  /* Jump between stops; crosses into the next or previous day at the ends. */
+  step(dir) {
+    if (!this.sched) return;
+    const items = this.sched.items, t = this.t;
+    let it = null;
+    if (dir > 0) it = items.find((x) => x.start > t + 0.5);
+    else { for (const x of items) if (x.start < t - 0.5) it = x; if (it && t - it.start < 3 && items.indexOf(it) > 0) it = items[items.indexOf(it) - 1]; }
+    if (!it) {
+      const nd = state.day + dir;
+      if (nd < 0 || nd >= DAYS.length) return;
+      selectDay(nd, { fly: false }); // reloads the replay through onFcDay
+      const its = this.sched.items;
+      it = dir > 0 ? its[0] : its[its.length - 1];
+      if (!it) return;
+    }
+    this.t = it.start + 0.01;
+    this.follow = true; this.jumpUntil = performance.now() + 1200;
+    if (this.t >= this.hi) this.playing = false;
+    this.renderPlayBtn();
+  },
+  jumpTo(id) {
+    if (!this.sched) return;
+    const it = this.sched.items.find((x) => x.s.id === id);
+    if (it) { this.t = it.start + 0.01; this.follow = true; this.jumpUntil = performance.now() + 1200; }
   },
   drawTrack(di) {
     // the slider track is painted with the sky: night, blue hour, golden hour, daylight
@@ -522,26 +713,38 @@ const Replay = {
     }
     let cur = this.sched.items[0];
     for (const it of this.sched.items) if (t >= it.start - 0.01) cur = it;
-    const s = cur.s, [x, z] = World.toXZ(s.lon, s.lat);
-    return { pos: new TAB.three.Vector3(x, World.y(s.lon, s.lat) + 0.05, z), at: cur };
+    const pin = this.pinEls.find((p) => p.s === cur.s);
+    const pos = pin ? new TAB.three.Vector3(pin.v.x, pin.v.y - 2.7 * this.k + 0.05 * this.k, pin.v.z) : this.base(cur.s.lon, cur.s.lat);
+    return { pos, at: cur };
   },
-  place(snap) {
+  place(snap, dt = 1 / 60) {
     const THREE = TAB.three;
     const loc = this.locate(this.t);
     const tk = this.token;
     tk.g.position.copy(loc.pos);
+    // on the photoreal map, sit the traveller on whatever surface is actually there (not mid-arc)
+    const onArc = loc.leg && !this.paths.find((p) => p.leg === loc.leg).ll;
+    if (this.live === 'google' && !onArc) {
+      if (snap || this.frame % 4 === 0) this.tokY = G3.groundY(loc.pos.x, loc.pos.z);
+      if (this.tokY != null) tk.g.position.y = this.tokY + 0.02;
+    }
     const moving = !!loc.leg;
     tk.car.visible = moving && loc.leg.mode !== 'walk';
     tk.walker.visible = !moving || loc.leg.mode === 'walk';
-    if (loc.ahead) tk.g.lookAt(loc.ahead.x, loc.pos.y, loc.ahead.z);
+    if (loc.ahead) tk.g.lookAt(loc.ahead.x, tk.g.position.y, loc.ahead.z);
     const { sp, ph } = World.setSun(THREE, dayMs(state.day, this.t), loc.pos);
+    this.grade(sp.el);
     if (this.follow) {
       const tgt = T.controls.target;
-      const k = snap ? 1 : 0.08;
+      // frame-rate independent glide; quicker right after a stop jump
+      const kk = snap ? 1 : 1 - Math.exp(-dt * (performance.now() < this.jumpUntil ? 7 : 5));
       const before = tgt.clone();
-      tgt.lerp(loc.pos, k);
+      tgt.lerp(tk.g.position, kk);
       T.camera.position.add(tgt.clone().sub(before)); // carry the camera along with the trip
-      if (snap) { T.camera.position.set(loc.pos.x + 14, loc.pos.y + 16, loc.pos.z + 22); }
+      if (snap) {
+        const p = tk.g.position, f = this.live === 'google' ? 0.3 : 1;
+        T.camera.position.set(p.x + 14 * f, p.y + 16 * f, p.z + 22 * f);
+      }
     }
     // HUD
     const d = DAYS[state.day];
@@ -559,6 +762,12 @@ const Replay = {
     $('#rpAct').textContent = act;
     $('#rpSlider').value = String(Math.round(this.t));
     $('#rpSlider').setAttribute('aria-valuetext', `${fmtMin(this.t)}, ${act}`);
+    // stop stepper labels
+    const nx = this.sched.items.find((x) => x.start > this.t + 0.5);
+    const nb = $('#rpNext');
+    const nLabel = nx ? `${nx.s.num} · ${nx.s.n}` : state.day < DAYS.length - 1 ? `${DAYS[state.day + 1].dw}` : '';
+    if (nb.dataset.l !== nLabel) { nb.dataset.l = nLabel; nb.querySelector('span').textContent = nLabel || 'End of trip'; nb.disabled = !nLabel; }
+    $('#rpPrev').disabled = state.day === 0 && !this.sched.items.some((x) => x.start < this.t - 0.5);
     // highlight the live row in the dossier timeline
     const liveId = loc.leg ? loc.leg.to.id : loc.at && loc.at.s.id;
     if (liveId !== this.liveId) {
@@ -569,13 +778,27 @@ const Replay = {
     // fog follows November climatology for this hour where we have it
     this.fogDensity = fogOdds('coast', this.t / 60) / 100;
   },
+  // Google's tiles carry baked daylight, so time of day is a colour grade on top
+  grade(el) {
+    const v = T.post.v.uniforms.grade.value;
+    if (this.live !== 'google') { v.set(1, 1, 1); return; }
+    const S = TAB.three.MathUtils.smoothstep;
+    const night = [0.24, 0.27, 0.42], blue = [0.5, 0.57, 0.8], gold = [1.06, 0.9, 0.76], day = [1, 1, 1];
+    const a = S(el, -12, -4), b = S(el, -4, 0) * (1 - S(el, 4, 12)), c = S(el, 4, 14);
+    const mix = (p, q, f) => p.map((x, i) => x + (q[i] - x) * f);
+    let col = mix(night, blue, a); col = mix(col, gold, b); col = mix(col, day, c);
+    v.set(col[0], col[1], col[2]);
+  },
   tick(dt) {
+    this.frame++;
     if (this.playing) {
       this.t += (dt * this.speed) / 60;
       if (this.t >= this.hi) { this.t = this.hi; this.playing = false; this.renderPlayBtn(); }
     }
-    this.place(false);
-    World.tickFog(dt, this.fogDensity || 0);
+    G3.update(this.map === 'google', this.live === 'google');
+    this.refine();
+    this.place(false, dt);
+    if (this.live !== 'google') World.tickFog(dt, this.fogDensity || 0);
     // pin labels
     const [w, h] = T.size, v = new TAB.three.Vector3();
     for (const p of this.pinEls) {
@@ -587,7 +810,7 @@ const Replay = {
   },
 };
 
-/* ───────────────────────── Light & Fog ─────────────────────────
+/* ───────────────────────── Outdoor stops + fog odds ─────────────────────────
    For each outdoor stop: which way you'll be looking, where the sun is at that hour,
    and how often fog or low cloud covers the nearest station at that hour in November. */
 const OUTDOOR = {
@@ -612,199 +835,9 @@ function fogOdds(kind, hour) {
   const h0 = Math.floor(hour) % 24, h1 = (h0 + 1) % 24, f = hour - Math.floor(hour);
   return st.hours[h0] * (1 - f) + st.hours[h1] * f;
 }
-function verdict(o, sp) {
-  if (sp.el < -6) return { k: 'dark', t: 'After dark' };
-  if (o.look === null) return sp.el > 20 ? { k: 'soft', t: 'Soft canopy light' } : { k: 'dim', t: 'Dim under the trees' };
-  let d = Math.abs(((sp.az - o.look + 540) % 360) - 180);
-  if (sp.el < 0) return { k: 'blue', t: 'Blue hour glow' };
-  if (d < 45) return { k: 'into', t: sp.el < 8 ? 'Sunset in the frame' : 'Into the sun (backlit)' };
-  if (d > 120) return { k: 'front', t: sp.el < 10 ? 'Golden light on the subject' : 'Front-lit' };
-  return { k: 'side', t: 'Side light' };
-}
-function lookWord(az) { return ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'][Math.round(az / 45) % 8]; }
-
-const Light = {
-  group: null, sel: null, t: null, entered: false,
-  enter() {
-    T.active = this; T.post.tilt = 0;
-    World.group.visible = false; if (Replay.token) Replay.token.g.visible = false;
-    if (!this.group) this.build();
-    this.group.visible = true;
-    if (!this.entered) { this.entered = true; this.initUi(); }
-    this.renderPanel();
-  },
-  leave() { if (Replay.token) Replay.token.g.visible = true; },
-  initUi() {
-    const sl = $('#ltSlider');
-    sl.addEventListener('input', () => { this.t = +sl.value; this.update(); });
-  },
-  build() {
-    const THREE = TAB.three;
-    const g = new THREE.Group(); this.group = g; T.scene.add(g);
-    this.disc = new THREE.Mesh(new THREE.CircleGeometry(10, 96), new THREE.MeshLambertMaterial({ color: 0xffffff }));
-    this.disc.rotation.x = -Math.PI / 2; this.disc.receiveShadow = true; g.add(this.disc);
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x7c8791, transparent: true, opacity: 0.55 });
-    for (const altDeg of [0, 30, 60]) {
-      const pts = []; const r = 10 * Math.cos((altDeg * Math.PI) / 180), y = 10 * Math.sin((altDeg * Math.PI) / 180);
-      for (let i = 0; i <= 96; i++) { const a = (i / 96) * Math.PI * 2; pts.push(new THREE.Vector3(Math.sin(a) * r, y, -Math.cos(a) * r)); }
-      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
-    }
-    this.compass = [];
-    const host = $('#ltLabels'); host.replaceChildren();
-    for (const [lab, az] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]]) {
-      const n = el('div', { class: 'lt-c', text: lab }); host.append(n);
-      this.compass.push({ n, v: new THREE.Vector3(Math.sin((az * Math.PI) / 180) * 11, 0.2, -Math.cos((az * Math.PI) / 180) * 11) });
-    }
-    this.sunLabel = el('div', { class: 'lt-sun' }); host.append(this.sunLabel);
-    this.viewLabel = el('div', { class: 'lt-view' }); host.append(this.viewLabel);
-    this.sunMesh = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 16), new THREE.MeshBasicMaterial({ color: 0xf2a33a }));
-    g.add(this.sunMesh);
-    this.ray = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineDashedMaterial({ color: 0xf2a33a, dashSize: 0.4, gapSize: 0.3 }));
-    g.add(this.ray);
-    this.wedge = new THREE.Mesh(new THREE.CircleGeometry(9.5, 32, 0, Math.PI / 4), new THREE.MeshBasicMaterial({ color: 0xc0362c, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }));
-    this.wedge.rotation.x = -Math.PI / 2; this.wedge.position.y = 0.04; g.add(this.wedge);
-    this.me = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5, 16), new THREE.MeshLambertMaterial({ color: 0xc0362c }));
-    this.me.position.y = 0.25; g.add(this.me);
-    this.path = null;
-    this.light = new THREE.DirectionalLight(0xffffff, 1.2); this.light.castShadow = !LOW;
-    this.light.shadow.mapSize.set(1024, 1024); const c = this.light.shadow.camera; c.left = -12; c.right = 12; c.top = 12; c.bottom = -12;
-    this.me.castShadow = true;
-    g.add(this.light, this.light.target, new THREE.AmbientLight(0xffffff, 0.55));
-  },
-  renderPanel() {
-    const host = $('#ltList');
-    const sched = scheduleFor(state.day);
-    const items = sched.items.filter((it) => OUTDOOR[it.s.id]);
-    const st = sunTimes(DATE_OF(state.day), 37.79, -122.44);
-    $('#ltSun').textContent = `Sunrise ${hm(st.rise)} · golden hour from about ${hm(st.set - 60)} · sunset ${hm(st.set)} · dark by ${hm(st.set + 28)}`;
-    if (!items.length) {
-      host.replaceChildren(el('p', { class: 'empty', text: `${DAYS[state.day].dw} is indoors at the conference. The evening plan is after dark, so there is no daylight to plan around.` }));
-      this.select(null); return;
-    }
-    host.replaceChildren(...items.map((it) => {
-      const o = OUTDOOR[it.s.id];
-      const mid = (it.start + it.end) / 2;
-      const sp = sunPos(dayMs(state.day, mid), it.s.lat, it.s.lon);
-      const v = verdict(o, sp);
-      const strip = el('canvas', { class: 'lt-strip', width: '280', height: '30', 'aria-hidden': 'true' });
-      this.paintStrip(strip, it, o.st);
-      return el('button', { class: `lt-row${this.sel === it.s.id ? ' sel' : ''}`, onclick: () => { this.select(it.s.id); this.renderPanel(); } }, [
-        el('span', { class: 'lt-name' }, [el('b', { text: String(it.s.num) }), it.s.n]),
-        el('span', { class: `chip-v ${v.k}`, text: v.t }),
-        el('span', { class: 'lt-meta', text: `${fmtMin(it.start)}–${fmtMin(it.end)} · looking ${o.look === null ? 'up' : lookWord(o.look)} at ${o.what} · fog or low cloud ~${Math.round(fogOdds(o.st, mid / 60))}% of November hours like this` }),
-        strip,
-      ]);
-    }));
-    if (!this.sel || !items.find((it) => it.s.id === this.sel)) this.select(items[0].s.id);
-    const src = FOGCLIMO && FOGCLIMO.stations ? `Fog odds: share of hours with visibility under 3 miles or a ceiling under 1,000 ft, ${FOGCLIMO.years}, at ${FOGCLIMO.stations.HAF.name} (coast) and ${FOGCLIMO.stations.SFO.name} (bay). Iowa Environmental Mesonet ASOS archive.` : 'Fog odds are a placeholder until the station climatology finishes downloading.';
-    $('#ltSrc').textContent = src;
-  },
-  paintStrip(cv, it, kind) {
-    const c = cv.getContext('2d'), w = cv.width, h = cv.height, lo = 360, hi = 1260;
-    for (let px = 0; px < w; px++) {
-      const m = lo + ((hi - lo) * px) / (w - 1);
-      c.fillStyle = PHASE_COLOR[lightPhase(sunPos(dayMs(state.day, m), it.s.lat, it.s.lon).el).id];
-      c.fillRect(px, 0, 1, 14);
-      const f = fogOdds(kind, m / 60) / 100;
-      c.fillStyle = `rgba(124,135,145,${0.25 + 0.6 * f})`;
-      c.fillRect(px, 30 - Math.max(1, f * 14), 1, Math.max(1, f * 14));
-    }
-    const x0 = ((it.start - lo) / (hi - lo)) * w, x1 = ((it.end - lo) / (hi - lo)) * w;
-    c.strokeStyle = '#c0362c'; c.lineWidth = 2; c.strokeRect(Math.max(1, x0), 1, Math.max(3, x1 - x0), 12);
-  },
-  select(id) {
-    this.sel = id;
-    const it = id && scheduleFor(state.day).items.find((x) => x.s.id === id);
-    $('#ltSlider').disabled = !it;
-    if (!it) { $('#ltTitle').textContent = 'No outdoor stops today'; $('#ltVerdict').textContent = ''; return; }
-    this.it = it;
-    this.t = Math.round((it.start + it.end) / 2);
-    const sl = $('#ltSlider'); sl.min = 360; sl.max = 1260; sl.value = String(this.t);
-    this.paintDisc(it.s);
-    this.drawPath(it.s);
-    const o = OUTDOOR[id];
-    const r = (o.look ?? 0) * Math.PI / 180;
-    this.wedge.visible = o.look !== null;
-    this.wedge.rotation.z = Math.PI / 2 - r - Math.PI / 8;
-    T.controls.target.set(0, 1.5, 0);
-    T.camera.position.set(-Math.sin(r) * 18 + 6, 15, Math.cos(r) * 18 + 4);
-    this.update();
-  },
-  paintDisc(s) {
-    // crop of the schematic map around the stop (2 km across) as the ground disc
-    const M = window.FC_MAPS;
-    const inCity = s.lat > M.cityRect[0] && s.lat < M.cityRect[2] && s.lon > M.cityRect[1] && s.lon < M.cityRect[3];
-    const cv = inCity ? M.cityCv : M.regionCv, rect = inCity ? M.cityRect : M.regionRect;
-    const [S, W, N, E] = rect;
-    const px = ((s.lon - W) / (E - W)) * cv.width, py = ((N - s.lat) / (N - S)) * cv.height;
-    const kmX = cv.width / ((E - W) * 111.32 * Math.cos((37.8 * Math.PI) / 180)), kmY = cv.height / ((N - S) * 110.57);
-    const out = document.createElement('canvas'); out.width = out.height = 1024;
-    const g = out.getContext('2d');
-    g.fillStyle = MAP.water; g.fillRect(0, 0, 1024, 1024);
-    g.drawImage(cv, px - kmX * 1.0, py - kmY * 1.0, kmX * 2, kmY * 2, 0, 0, 1024, 1024);
-    const t = new TAB.three.CanvasTexture(out); t.colorSpace = TAB.three.SRGBColorSpace;
-    if (this.disc.material.map) this.disc.material.map.dispose();
-    this.disc.material.map = t; this.disc.material.needsUpdate = true;
-  },
-  drawPath(s) {
-    const THREE = TAB.three;
-    if (this.path) { this.group.remove(this.path); this.path.geometry.dispose(); }
-    const pts = [], cols = [];
-    for (let m = 360; m <= 1260; m += 5) {
-      const sp = sunPos(dayMs(state.day, m), s.lat, s.lon);
-      if (sp.el < -2) continue;
-      const v = this.dome(sp, 10);
-      pts.push(v.x, v.y, v.z);
-      const c = new THREE.Color(PHASE_COLOR[lightPhase(sp.el).id === 'day' ? 'day' : 'golden']);
-      if (lightPhase(sp.el).id === 'day') c.set(0x7c8791);
-      else c.set(0xf2a33a);
-      cols.push(c.r, c.g, c.b);
-    }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-    this.path = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true }));
-    this.group.add(this.path);
-  },
-  dome(sp, R) {
-    const r = Math.PI / 180, el = Math.max(sp.el, -2);
-    return new TAB.three.Vector3(Math.sin(sp.az * r) * Math.cos(el * r) * R, Math.sin(el * r) * R, -Math.cos(sp.az * r) * Math.cos(el * r) * R);
-  },
-  update() {
-    if (!this.it) return;
-    const THREE = TAB.three, s = this.it.s, o = OUTDOOR[s.id];
-    const sp = sunPos(dayMs(state.day, this.t), s.lat, s.lon);
-    const p = this.dome(sp, 10);
-    this.sunMesh.position.copy(p);
-    this.sunMesh.visible = sp.el > -2;
-    this.ray.geometry.setFromPoints([new THREE.Vector3(0, 0.4, 0), p]); this.ray.computeLineDistances();
-    this.light.position.copy(p).multiplyScalar(3); this.light.intensity = 0.2 + 1.2 * THREE.MathUtils.smoothstep(sp.el, -2, 10);
-    const ph = lightPhase(sp.el);
-    T.scene.background.set(PHASE_COLOR[ph.id]);
-    document.body.classList.toggle('three-dark', ph.id === 'night' || ph.id === 'blue');
-    const v = verdict(o, sp);
-    $('#ltTitle').textContent = `${s.n} · ${DAYS[state.day].dw} ${fmtMin(this.t)}`;
-    const inWin = this.t >= this.it.start && this.t <= this.it.end;
-    const sunWords = sp.el < -0.833 ? `the sun is ${Math.abs(Math.round(sp.el))}° below the horizon` : `the sun is ${Math.round(sp.el)}° up in the ${lookWord(sp.az)}`;
-    $('#ltVerdict').replaceChildren(el('span', { class: `chip-v ${v.k}`, text: v.t }),
-      ` You'll face ${o.look === null ? 'up into the trees' : lookWord(o.look)}; ${sunWords}. Fog or low cloud: ~${Math.round(fogOdds(o.st, this.t / 60))}% of November hours like this.${inWin ? '' : ' (Outside your planned visit.)'}`);
-    this.sunLabel.textContent = fmtMin(this.t);
-  },
-  tick() {
-    const [w, h] = T.size, v = new TAB.three.Vector3();
-    const proj = (n, vec) => { v.copy(vec).project(T.camera); const on = v.z < 1; n.style.display = on ? '' : 'none'; if (on) n.style.transform = `translate3d(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px, 0)`; };
-    for (const c of this.compass) proj(c.n, c.v);
-    if (this.sunMesh.visible) proj(this.sunLabel, this.sunMesh.position.clone().add(new TAB.three.Vector3(0, 0.9, 0))); else this.sunLabel.style.display = 'none';
-    if (this.wedge.visible && this.it) {
-      const r = OUTDOOR[this.it.s.id].look * Math.PI / 180;
-      this.viewLabel.textContent = 'YOUR VIEW';
-      proj(this.viewLabel, new TAB.three.Vector3(Math.sin(r) * 7, 0.3, -Math.cos(r) * 7));
-    } else this.viewLabel.style.display = 'none';
-  },
-};
-
 /* ───────────────────────── wiring ───────────────────────── */
 window.onFcDay = () => {
   if (TAB.current === 'replay' && TAB.three && Replay.entered) Replay.load(state.day, true);
-  if (TAB.current === 'light' && TAB.three && Light.group) { Light.sel = null; Light.renderPanel(); }
 };
 document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
-fetch('data/fogclimo.json').then((r) => (r.ok ? r.json() : null)).then((j) => { FOGCLIMO = j; if (TAB.current === 'light' && Light.group) Light.renderPanel(); }).catch(() => {});
+fetch('data/fogclimo.json').then((r) => (r.ok ? r.json() : null)).then((j) => { FOGCLIMO = j; }).catch(() => {});

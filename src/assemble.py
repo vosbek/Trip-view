@@ -14,7 +14,7 @@ flapcss = "\n".join(css[start:end])
 places = json.dumps(json.loads((B/'places.json').read_text()), ensure_ascii=False, separators=(',',':'))
 page = (B/'page.html').read_text()
 page = page.replace('/*@@FLAPCSS@@*/', flapcss).replace('/*@@FLAPJS@@*/', flap).replace('/*@@SHADERS@@*/', shaders)
-page = page.replace('/*@@APP@@*/', (B/'app.js').read_text() + '\n' + (B/'tabs.js').read_text() + '\n' + (B/'gmaps.js').read_text())
+page = page.replace('/*@@APP@@*/', (B/'app.js').read_text() + '\n' + (B/'tabs.js').read_text() + '\n' + (B/'gmaps.js').read_text() + '\n' + (B/'print.js').read_text())
 import os
 ph = {}
 if (B/'photos_map.json').exists():

@@ -1221,10 +1221,12 @@ function selectStop(di, si, { fly = true, fromTour = false } = {}) {
   setNow(`${DAYS[di].dw} · ${s.t}`, s.n);
   const row = document.getElementById(`stop-${s.id}`);
   if (row && !fromTour) row.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });
+  if (typeof TAB !== 'undefined' && TAB.current === 'replay' && Replay.entered) { Replay.jumpTo(s.id); return; }
   if (fly && scene) flyToStop(s);
 }
 
 function stepStop(dir) {
+  if (typeof TAB !== 'undefined' && TAB.current === 'replay' && Replay.entered) { Replay.step(dir); return; }
   const st = DAYS[state.day].stops.filter((s) => !s.leg);
   let i = st.findIndex((s) => s.id === state.stop);
   if (i < 0) i = dir > 0 ? -1 : st.length;
