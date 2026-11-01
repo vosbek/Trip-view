@@ -5,6 +5,9 @@ const C = window.Cesium;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const LOW = matchMedia('(pointer: coarse)').matches || innerWidth < 860 || (navigator.hardwareConcurrency || 8) <= 4;
 const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
+// Preview a moment of the trip: ?now=2026-11-14T22:40:00Z (ignored when invalid).
+const NOW_OFFSET = (() => { try { const q = new URLSearchParams(location.search).get('now'); const t = q ? Date.parse(q) : NaN; return Number.isFinite(t) ? t - Date.now() : 0; } catch { return 0; } })();
+const nowMs = () => Date.now() + NOW_OFFSET;
 const perf = { fogSteps: LOW ? 10 : 20, near: LOW ? 4500 : 7500, level: 0 };
 const $ = (s) => document.querySelector(s);
 const el = (tag, attrs = {}, kids = []) => {
@@ -866,7 +869,7 @@ function startMin(t) {
   return h * 60 + (+m[2] || 0);
 }
 function sfNow() {
-  const d = new Date(Date.now() - 8 * 3600000);
+  const d = new Date(nowMs() - 8 * 3600000);
   return { day: Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - Date.UTC(2026, 10, 14)) / 86400000), min: d.getUTCHours() * 60 + d.getUTCMinutes() };
 }
 let fieldShown = '';
@@ -883,7 +886,7 @@ function updateField() {
   return { day, next };
 }
 function updateClock() {
-  const now = new Date();
+  const now = new Date(nowMs());
   const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   $('#sfclock').textContent = `SF ${f.format(now).toUpperCase()}`;
   const ms = LANDING_UTC - now.getTime();
