@@ -1293,6 +1293,7 @@ function renderSensors() {
 const CHECKS = [
   { id: 'parking', t: 'Reserve Muir Woods parking', s: 'Sunday Nov 15, aim for a 9:00 AM slot', url: 'https://gomuirwoods.com/' },
   { id: 'rental', t: 'Reserve the Sunday rental car', s: 'Avis, 500 Beach St. Confirm return hours', url: 'https://www.avis.com/en/locations/nam/us/ca/san-francisco/fmw' },
+  { id: 'workshops', t: 'Register for the QCon workshops', s: 'Thu: Measuring What Matters (9 AM), Skills That Actually Work (1 PM). Fri: Harness Engineering', url: 'https://qconsf.com/training/nov2026' },
   { id: 'exploratorium', t: 'Book Exploratorium After Dark', s: 'Thursday Nov 19, Glow Opening, 6–10 PM', url: 'https://www.exploratorium.edu/visit/calendar/after-dark-glow-opening' },
   { id: 'cruise', t: 'Book the City Lights Cruise', s: 'Friday 5:30 PM, once the flight time is set', url: 'https://www.redandwhite.com/schedule' },
   { id: 'primerib', t: 'House of Prime Rib, if we want it', s: 'Reservations fill weeks out', url: 'https://www.houseofprimerib.net' },

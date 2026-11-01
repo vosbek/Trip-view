@@ -1,7 +1,6 @@
 /* ───────────────────────── Matt's QCon SF schedule ─────────────────────────
    From qconsf.com/schedule/nov2026 (checked Nov 1; "subject to change"). One pick per slot,
-   with the strongest alternative in the same slot. Training days need registration, so those
-   picks are suggestions until the registrations are known. */
+   with the strongest alternative in the same slot. Workshops are per-session registrations. */
 const QS = 'https://qconsf.com';
 const QCON = {
   mon: [
@@ -58,19 +57,19 @@ const QCON = {
     { t: '5:15', k: 'key', pick: { title: 'Evening keynote: Game Time: How to (Unsuccessfully) 10x in a Week & (Successfully) 10x in a Year', who: 'Plum Ertz, Ro', room: 'Grand Ballroom', url: '/keynote/nov2026/game-time-how-unsuccessfully-10x-week-successfully-10x-year' } },
   ],
   thu: [
-    { t: '9:00', k: 'train', pick: { title: 'Measuring What Matters: Building a Developer Productivity Program Engineers Can Trust', who: 'Grey Newell · half day', room: 'Hyatt Regency', url: '/training/nov2026', why: 'Measurement for 4,000 devs' },
-      alt: { title: 'Supercharge Your Work With Claude Code and Codex', who: 'Khawaja Shams · half day', room: 'Hyatt Regency', url: '/training/nov2026' } },
-    { t: '1:00', k: 'train', pick: { title: 'How To Write Skills That Actually Work', who: 'Baruch Sadogursky · half day', room: 'Hyatt Regency', url: '/training/nov2026', why: 'Agent skills' },
-      alt: { title: 'AI-Assisted Coding Master Class: Build Your Mission Control', who: 'Sepehr Khosravi & Dev Bali · half day', room: 'Hyatt Regency', url: '/training/nov2026' } },
+    { t: '9:00', k: 'train', pick: { title: 'Measuring What Matters: Building a Developer Productivity Program Engineers Can Trust', who: 'Grey Newell · half day', room: 'Hyatt Regency', url: '/training/nov2026/measuring-what-matters-building-developer-productivity-program-engineers-can-trust', why: 'Measurement for 4,000 devs' },
+      alt: { title: 'Supercharge Your Work With Claude Code and Codex', who: 'Khawaja Shams · half day', room: 'Hyatt Regency', url: '/training/nov2026/supercharge-your-work-claude-code-and-codex' } },
+    { t: '1:00', k: 'train', pick: { title: 'How To Write Skills That Actually Work', who: 'Baruch Sadogursky · half day', room: 'Hyatt Regency', url: '/training/nov2026/how-write-skills-actually-work', why: 'Agent skills' },
+      alt: { title: 'AI-Assisted Coding Master Class: Build Your Mission Control', who: 'Sepehr Khosravi & Dev Bali · half day', room: 'Hyatt Regency', url: '/training/nov2026/ai-assisted-coding-master-class-build-your-mission-control' } },
   ],
   fri: [
-    { t: '9:00', k: 'train', pick: { title: 'Effective AI-Native Development with Harness Engineering', who: 'Zichuan Xiong & Premanand Chandrasekaran · full day', room: 'Hyatt Regency', url: '/training/nov2026', why: 'Harness + factory, hands-on' },
-      alt: { title: 'Agent MCP Workshop: Building Your Own Java-Based MCP Server', who: 'David Parry, Qodo · full day', room: 'Hyatt Regency', url: '/training/nov2026' } },
+    { t: '9:00', k: 'train', pick: { title: 'Effective AI-Native Development with Harness Engineering', who: 'Zichuan Xiong & Premanand Chandrasekaran · full day', room: 'Hyatt Regency', url: '/training/nov2026/effective-ai-native-development-harness-engineering', why: 'Harness + factory, hands-on' },
+      alt: { title: 'Agent MCP Workshop: Building Your Own Java-Based MCP Server', who: 'David Parry, Qodo · full day', room: 'Hyatt Regency', url: '/training/nov2026/agent-mcp-workshop-building-your-own-java-based-mcp-server' } },
   ],
 };
 const QCON_NOTE = {
-  thu: 'Workshops need registration. These are suggestions; swap in what you signed up for.',
-  fri: 'Full-day workshop; registration required.',
+  thu: 'Register for both. Workshops are booked per session and seats are capped.',
+  fri: 'Register for this one too; it runs all day.',
 };
 function qconPm(t) { const h = +t.split(':')[0]; return h >= 7 && h <= 11 ? 'AM' : 'PM'; }
 function qconAgenda(dayId, { print = false } = {}) {
