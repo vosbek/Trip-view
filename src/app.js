@@ -935,6 +935,16 @@ function flyToStop(s, { duration = 2.8, orbit = true } = {}) {
       complete: () => { if (token === flightToken && orbit) startOrbit(target, s.range, pitch); done(true); },
       cancel: () => done(false),
     });
+    // Watchdog: if a long flight stalls (heavy terrain loading can drop it), land the camera directly.
+    setTimeout(() => {
+      if (token !== flightToken || orbitOff) return;
+      if (C.Cartesian3.distance(camera.positionWC, target) > s.range * 6) {
+        camera.cancelFlight();
+        camera.lookAt(target, new C.HeadingPitchRange(heading, C.Math.toRadians(pitch), s.range));
+        if (orbit) startOrbit(target, s.range, pitch); else camera.lookAtTransform(C.Matrix4.IDENTITY);
+        done(true);
+      }
+    }, (REDUCED ? 0 : duration * 1000) + 2500);
   });
 }
 function flyToDay(di, duration = 2.6) {
