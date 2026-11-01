@@ -295,6 +295,35 @@ a { color: inherit; }
 .stop.leg > button { cursor: default; padding-block: 7px; }
 .stop.leg .nm { font: 500 12px/1.4 var(--f-body); color: var(--ink-3); font-style: italic; }
 .near { padding: 0 6px 14px 86px; display: grid; gap: 2px; }
+.qagenda { padding: 2px 6px 16px 86px; }
+.qa-h { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--ink); padding-bottom: 5px; }
+.qa-h span { font: 700 10px/1.3 var(--f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gg); }
+.qa-h a { font: 600 11px/1 var(--f-body); color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.qa-note { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); }
+.qagenda ol { list-style: none; margin: 0; padding: 0; }
+.qagenda li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.qa-t { font: 600 11px/1.45 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.qa-b { display: grid; gap: 2px; min-width: 0; }
+.qa-title { font: 600 13px/1.3 var(--f-body); color: var(--ink); text-decoration: none; }
+a.qa-title:hover { text-decoration: underline; text-decoration-color: var(--gg); }
+.qa-who { font-size: 11.5px; color: var(--ink-2); }
+.qa-who .qa-room, .qa-room { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.qa-meta .qa-room { font: 500 11px/1.3 var(--f-body); color: var(--ink-3); }
+.qa-why { justify-self: start; margin-top: 2px; font: 600 9.5px/1.2 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--gg); }
+.qa-alt { margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+.qa-alt a { color: var(--ink-2); text-decoration: none; border-bottom: 1px dotted var(--ink-3); }
+.qa-alt .qa-room { font-weight: 500; color: var(--ink-3); }
+.qa-meta .qa-title { font-weight: 500; color: var(--ink-2); font-size: 12px; }
+.qa-meta .qa-t { color: var(--ink-3); }
+.qa-key .qa-title, .qa-train .qa-title { font-family: var(--f-display); font-weight: 700; font-size: 13.5px; }
+.qa-key .qa-t::after { content: "KEY"; display: block; font-size: 8.5px; letter-spacing: 0.12em; color: var(--gg); }
+.pd-qa td { border-bottom: 0 !important; padding-top: 0 !important; }
+.pd-qa .qagenda { padding: 0 0 8px; }
+.pd-qa .qagenda li { grid-template-columns: 0.72in minmax(0, 1fr); padding: 5px 0; break-inside: avoid; }
+.pd-qa .qa-h a { display: none; }
+.pd-qa .qa-title { font-size: 10.5pt; } .pd-qa .qa-who, .pd-qa .qa-alt { font-size: 9pt; } .pd-qa .qa-t { font-size: 9pt; }
+.pd-qa .qa-why { font-size: 7.5pt; }
+
 .near .h { font: 600 9.5px/1.4 var(--f-mono); letter-spacing: 0.14em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 4px; }
 .near button {
   display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center;
@@ -537,6 +566,7 @@ body[data-tab="replay"] .rp-check { display: block; font-size: 12.5px; color: va
 @media (max-width: 420px) {
   .stop > button { grid-template-columns: 62px minmax(0, 1fr); gap: 10px; }
   .near { padding-left: 72px; }
+  .qagenda { padding-left: 4px; padding-right: 4px; }
   .notes li { grid-template-columns: 62px minmax(0, 1fr); }
   .layers { grid-template-columns: 1fr; }
 }

@@ -63,35 +63,35 @@ const DAYS = [
     sub: 'Keynotes and sessions at the Hyatt Regency, then Italian in North Beach.',
     stops: [
       { t: '7:15 AM', n: 'F-line streetcar to the Embarcadero', lat: 37.8077, lon: -122.4146, range: 900, d: 'The historic F Market & Wharves line runs from near the hotel along the waterfront. Badge pickup opens at 7:15.' },
-      { via: 'streetcar', t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Keynote, sessions and the 6–7 PM social. On the agenda: The Harness Is the New Operating System, and a software-factory efficiency talk.' },
+      { via: 'streetcar', t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Badge pickup from 7:15, keynote at 9 in the Grand Ballroom, sessions until 6, then the 6–7 PM social.' },
       { via: 'drive', t: '7:15 PM', n: 'North Beach dinner', until: '9:00 PM', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
     ] },
   { id: 'tue', dw: 'TUE', dn: 17, tag: 'QCon',
     title: 'Conference & Chinatown', eyebrow: 'Tuesday · Conference · Evening out',
     sub: 'Day two at QCon, then dinner on Grant Avenue and a cable car if they\'re running.',
     stops: [
-      { t: 'All day', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'AI systems, staff-plus engineering and distributed systems tracks.' },
+      { t: '9 AM–6:30 PM', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Breakfast from 8, keynote at 9, sessions until 6, then a short reception.' },
       { via: 'walk', t: '7:15 PM', n: 'Chinatown + cable cars', until: '9:30 PM', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
     ] },
   { id: 'wed', dw: 'WED', dn: 18, tag: 'QCon',
     title: 'QCon finale', eyebrow: 'Wednesday · Conference · Evening out',
     sub: 'Last main conference day, then a pier full of antique arcade machines.',
     stops: [
-      { t: 'All day', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Architecting for agents and engineering the developer experience.' },
+      { t: '9 AM–6 PM', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Keynote at 9, sessions until 4:45, the closing reception, then an evening keynote at 5:15.' },
       { via: 'drive', t: '7:00 PM', n: 'Musée Mécanique', until: '8:00 PM', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
     ] },
   { id: 'thu', dw: 'THU', dn: 19, tag: 'Training',
     title: 'Training + After Dark', eyebrow: 'Thursday · QCon training · Evening event',
     sub: 'A full day of QCon workshops, then an adults-only night at the Exploratorium.',
     stops: [
-      { t: '9 AM–4 PM', n: 'QCon training day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Workshops on agent SDKs, Claude Code and Codex, and developer productivity.' },
+      { t: '9 AM–4 PM', n: 'QCon training day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Two half-day workshops, 9 AM and 1 PM.' },
       { via: 'walk', t: '6–10 PM', n: 'Exploratorium After Dark: Glow', lat: 37.8017, lon: -122.3973, must: true, range: 600, d: 'Adults-only night at the science museum on Pier 15, with interactive exhibits and art made with light. A short walk up the Embarcadero from the Hyatt. Reserve ahead.' },
     ] },
   { id: 'fri', dw: 'FRI', dn: 20, tag: 'Training',
     title: 'Training + the Bay at night', eyebrow: 'Friday · QCon training · Check the flight',
     sub: 'The last workshop day, then two hours on the Bay at dusk.',
     stops: [
-      { t: '9 AM–4 PM', n: 'QCon training day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 900, d: 'The Friday full-day workshop at the Hyatt Regency.' },
+      { t: '9 AM–4 PM', n: 'QCon training day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 900, d: 'One full-day workshop at the Hyatt Regency.' },
       { via: 'streetcar', t: '5:30 PM', n: 'City Lights Cruise', until: '7:30 PM', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
     ] },
 ];
@@ -1127,6 +1127,7 @@ function stopRow(s) {
         sel ? el('div', { class: 'gm-stop', 'data-gm-stop': s.id }) : null,
       ]),
     ]));
+    if (s.conf) { const ag = qconAgenda(DAYS[s.day].id); if (ag) li.append(ag); }
     if (sel) {
       const near = nearbyFor(s);
       if (near.length) {

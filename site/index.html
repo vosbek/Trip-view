@@ -309,6 +309,35 @@ a { color: inherit; }
 .stop.leg > button { cursor: default; padding-block: 7px; }
 .stop.leg .nm { font: 500 12px/1.4 var(--f-body); color: var(--ink-3); font-style: italic; }
 .near { padding: 0 6px 14px 86px; display: grid; gap: 2px; }
+.qagenda { padding: 2px 6px 16px 86px; }
+.qa-h { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--ink); padding-bottom: 5px; }
+.qa-h span { font: 700 10px/1.3 var(--f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gg); }
+.qa-h a { font: 600 11px/1 var(--f-body); color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.qa-note { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); }
+.qagenda ol { list-style: none; margin: 0; padding: 0; }
+.qagenda li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.qa-t { font: 600 11px/1.45 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.qa-b { display: grid; gap: 2px; min-width: 0; }
+.qa-title { font: 600 13px/1.3 var(--f-body); color: var(--ink); text-decoration: none; }
+a.qa-title:hover { text-decoration: underline; text-decoration-color: var(--gg); }
+.qa-who { font-size: 11.5px; color: var(--ink-2); }
+.qa-who .qa-room, .qa-room { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.qa-meta .qa-room { font: 500 11px/1.3 var(--f-body); color: var(--ink-3); }
+.qa-why { justify-self: start; margin-top: 2px; font: 600 9.5px/1.2 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--gg); }
+.qa-alt { margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+.qa-alt a { color: var(--ink-2); text-decoration: none; border-bottom: 1px dotted var(--ink-3); }
+.qa-alt .qa-room { font-weight: 500; color: var(--ink-3); }
+.qa-meta .qa-title { font-weight: 500; color: var(--ink-2); font-size: 12px; }
+.qa-meta .qa-t { color: var(--ink-3); }
+.qa-key .qa-title, .qa-train .qa-title { font-family: var(--f-display); font-weight: 700; font-size: 13.5px; }
+.qa-key .qa-t::after { content: "KEY"; display: block; font-size: 8.5px; letter-spacing: 0.12em; color: var(--gg); }
+.pd-qa td { border-bottom: 0 !important; padding-top: 0 !important; }
+.pd-qa .qagenda { padding: 0 0 8px; }
+.pd-qa .qagenda li { grid-template-columns: 0.72in minmax(0, 1fr); padding: 5px 0; break-inside: avoid; }
+.pd-qa .qa-h a { display: none; }
+.pd-qa .qa-title { font-size: 10.5pt; } .pd-qa .qa-who, .pd-qa .qa-alt { font-size: 9pt; } .pd-qa .qa-t { font-size: 9pt; }
+.pd-qa .qa-why { font-size: 7.5pt; }
+
 .near .h { font: 600 9.5px/1.4 var(--f-mono); letter-spacing: 0.14em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 4px; }
 .near button {
   display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center;
@@ -669,6 +698,7 @@ body[data-tab="replay"] .rp-check { display: block; font-size: 12.5px; color: va
 @media (max-width: 420px) {
   .stop > button { grid-template-columns: 62px minmax(0, 1fr); gap: 10px; }
   .near { padding-left: 72px; }
+  .qagenda { padding-left: 4px; padding-right: 4px; }
   .notes li { grid-template-columns: 62px minmax(0, 1fr); }
   .layers { grid-template-columns: 1fr; }
 }
@@ -1581,6 +1611,103 @@ const animeShader = {
 };
 
 const PLACES = [{"name":"The Wave Organ","kind":"gem","lat":37.80855,"lon":-122.44013,"blurb":"A 1986 Exploratorium sound sculpture at the end of the Marina jetty. Pipes run down into the bay and gurgle and hum as the water moves, and the benches are carved granite from an old cemetery.","tip":"Best around high tide. About a 15-minute walk out past the St. Francis Yacht Club on an uneven path.","url":"https://www.exploratorium.edu/visit/wave-organ"},{"name":"Equator Coffees, Fort Mason","kind":"coffee","lat":37.80532,"lon":-122.43188,"blurb":"Marin-roasted specialty coffee at the Fort Mason gate, with Bay views. It sits on the waterfront walk from the Wharf to the Palace of Fine Arts.","tip":"Opens 7am on weekends. Small inside, more seating outside.","url":"https://www.equatorcoffees.com"},{"name":"Presidio Tunnel Tops","kind":"gem","lat":37.80362,"lon":-122.45657,"blurb":"14 acres of park built over the Presidio Parkway tunnels: lawns, a bridge-view overlook and the Field Station curiosity lab, about 10 minutes' walk from the Yoda Fountain.","tip":"Free and open daily. Food trucks nearby keep seasonal hours.","url":"https://presidio.gov/explore/attractions/presidio-tunnel-tops/"},{"name":"Earth Wall (Goldsworthy)","kind":"gem","lat":37.79757,"lon":-122.45888,"blurb":"A ball of eucalyptus branches set into a rammed-earth wall in the Presidio Officers' Club. Free history galleries inside cover the Ohlone, Spanish and US Army eras.","tip":"Public viewing Saturdays only, 11am–4pm. That's your Saturday.","url":"https://presidio.gov/explore/attractions/andy-goldsworthys-earth-wall"},{"name":"Spire (Goldsworthy)","kind":"gem","lat":37.79191,"lon":-122.46004,"blurb":"A 90-foot spike of 37 cypress trunks in a young forest by the Presidio golf course, scorched by a 2020 fire. Goldsworthy's first Presidio work, and a short walk from Wood Line.","tip":"Take the Bay Area Ridge Trail from Arguello Blvd rather than cutting through brush.","url":""},{"name":"Presidio Golf Course","kind":"gem","lat":37.79049,"lon":-122.45979,"blurb":"An 1895 Army-era course through eucalyptus and cypress, public since the 1990s. A driving range and clubhouse bar if a full round is too much.","tip":"Book tee times online. Dress for wind and fog.","url":"https://www.presidiogolf.com"},{"name":"Arsicault Bakery","kind":"eat","lat":37.78343,"lon":-122.45931,"blurb":"A tiny Inner Richmond counter often named the city's best croissant. Get the plain or almond croissant and a kouign-amann.","tip":"Opens 8am, no seating, sells out by early afternoon.","url":"https://www.arsicault-bakery.com"},{"name":"Fort Point","kind":"gem","lat":37.81061,"lon":-122.47709,"blurb":"A Civil War-era brick fort built directly under the south arch of the Golden Gate Bridge. Climb to the roof and look straight up at the deck.","tip":"Closed Tue and Wed; open Thu–Mon 10–5. Free.","url":"https://www.nps.gov/fopo/"},{"name":"Eagle Point labyrinth","kind":"gem","lat":37.78802,"lon":-122.50583,"blurb":"A short spur off the Lands End trail to a rock point facing the Golden Gate, where a stone labyrinth gets rebuilt every few years. The view of the bridge mouth is the reason to go.","tip":"The stones may not be laid out right now. Stairs on the way back up.","url":""},{"name":"Sutro Heights Park","kind":"gem","lat":37.77748,"lon":-122.51058,"blurb":"Adolph Sutro's old hilltop estate above the baths: a garden, a lion statue, house foundations and a stone parapet looking straight down Ocean Beach. Few people find it.","tip":"Free and open all day. Five minutes uphill from the baths.","url":""},{"name":"Lincoln Park Golf Course","kind":"gem","lat":37.78231,"lon":-122.49445,"blurb":"A hilly par-68 city course next to Lands End. The 17th tee looks across to the Golden Gate Bridge, which is rare for a public course anywhere.","tip":"Nonresident rate about $70 Fri–Sun. It's steep, so take a cart.","url":"https://sfrecpark.org/498/Lincoln-Park-Golf-Course"},{"name":"Green Apple Books","kind":"gem","lat":37.78306,"lon":-122.46472,"blurb":"A sprawling independent bookstore on Clement St, open since 1967. Creaky floors, handwritten staff picks, a big used section and a good cookbook shelf.","tip":"Open 10am–9pm daily. Clement St is also a dumpling and bakery strip.","url":"https://www.greenapplebooks.com"},{"name":"Pizzetta 211","kind":"eat","lat":37.78371,"lon":-122.48302,"blurb":"A tiny Outer Richmond pizzeria making thin, blistered pies from a short menu that changes often. The farm-egg pizza is a regular. A quieter counterpoint to Tony's.","tip":"Very small, so expect a wait at peak times.","url":"https://www.pizzetta211.com"},{"name":"Bison Paddock","kind":"gem","lat":37.76969,"lon":-122.49823,"blurb":"Bison have lived in Golden Gate Park since the 1890s, and a small herd still grazes here off JFK Drive. An odd, peaceful stop near Ocean Beach.","tip":"Walk the fence to the back side for the best views.","url":""},{"name":"Beach Chalet","kind":"eat","lat":37.76946,"lon":-122.51021,"blurb":"A 1925 building at the west end of Golden Gate Park with WPA-era murals downstairs and a brewpub upstairs looking over Ocean Beach.","tip":"Reserve a window table. Come for the view and the murals.","url":"https://www.beachchalet.com"},{"name":"Equator Coffees, Hwy 1","kind":"coffee","lat":37.88166,"lon":-122.52442,"blurb":"A surfboard-lined Equator cafe on Shoreline Highway, right where you turn off toward Muir Woods. Single-origin pour-over or the shakerato before the drive up.","tip":"Opens 6:30am. Last good coffee and pastry before the redwoods.","url":"https://www.equatorcoffees.com"},{"name":"The Pelican Inn","kind":"eat","lat":37.86467,"lon":-122.57493,"blurb":"A Tudor-style English pub a short walk from Muir Beach, with a real fireplace, a ploughman's lunch, fish and chips and pints. Right for a foggy November day.","tip":"Opens 11am daily. Fits between Muir Woods and the overlook.","url":"https://www.pelicaninn.com"},{"name":"Bay Model","kind":"gem","lat":37.86346,"lon":-122.49569,"blurb":"A 1.5-acre working hydraulic model of the entire Bay and Delta, built by the Army Corps of Engineers in the 1950s to simulate tides before computers could.","tip":"Closed Sun and Mon, so it won't fit Sunday's drive. Note for next time.","url":""},{"name":"Waldo Point houseboats","kind":"gem","lat":37.87246,"lon":-122.50197,"blurb":"Sausalito's floating neighborhood of hand-built, often eccentric houseboats. Otis Redding wrote '(Sittin' On) The Dock of the Bay' while staying here.","tip":"Park on Gate 5 Rd and stay on the public walkways. The docks are homes.","url":""},{"name":"Bar Bocce","kind":"eat","lat":37.8596,"lon":-122.48481,"blurb":"A waterfront pizza bar on Bridgeway with fire pits and heaters on the sand. Crisp seasonal pies, salads and spritzes while boats drift past.","tip":"Reserve on weekends. Dogs welcome outside.","url":"https://www.barbocce.com"},{"name":"Blue Bottle, Ferry Building","kind":"coffee","lat":37.79612,"lon":-122.39399,"blurb":"Blue Bottle's flagship kiosk inside the Ferry Building, four minutes from the Hyatt. A New Orleans iced or a pour-over on the bayside benches.","tip":"Opens 6:30am. Lines peak around 8:30.","url":"https://bluebottlecoffee.com"},{"name":"Hog Island Oyster Co.","kind":"eat","lat":37.79596,"lon":-122.39342,"blurb":"Tomales Bay oysters, clam chowder and grilled cheese at a marble bar facing the Bay Bridge. The best sit-down lunch near QCon.","tip":"Get there at opening (11:30) or after 2 to skip the line.","url":"https://hogislandoysters.com"},{"name":"Ferry Plaza Farmers Market","kind":"gem","lat":37.79532,"lon":-122.3936,"blurb":"CUESA's market outside the Ferry Building: Northern California produce, mushrooms, citrus and ready-to-eat stalls. The cook in the pair will want to browse.","tip":"Tue and Thu 10am–2pm, Sat 8–2. Easy on a QCon lunch break.","url":"https://cuesa.org"},{"name":"Boichik Bagels","kind":"eat","lat":37.79146,"lon":-122.39937,"blurb":"New Jersey-style bagels with a big following. Try the pumperthing or lox and schmear, six minutes' walk from the Hyatt.","tip":"Opens 6:30am, closes 1:30pm. Order ahead online.","url":""},{"name":"Tadich Grill","kind":"eat","lat":37.79344,"lon":-122.39945,"blurb":"Open since 1849 and often called California's oldest restaurant. White-jacketed waiters, a long wooden counter, cioppino and petrale sole.","tip":"Mon–Fri 11–9. Counter seats usually open without a reservation.","url":"https://www.tadichgrill.com"},{"name":"House of Prime Rib","kind":"eat","lat":37.79343,"lon":-122.42273,"blurb":"A 1949 institution where prime rib is carved tableside from silver carts and the salad is spun at the table. A once-per-trip splurge.","tip":"Reservations fill weeks out, so book now. Dinner only.","url":"https://www.houseofprimerib.net"},{"name":"Tony's Pizza Napoletana","kind":"eat","lat":37.80038,"lon":-122.40905,"blurb":"Tony Gemignani's North Beach pizzeria with ovens for Neapolitan, New York, Detroit, Roman and coal-fired styles. The wood-fired Margherita is limited to a small daily count.","tip":"Opens at noon and the line forms before then.","url":"https://www.tonyspizzanapoletana.com"},{"name":"Golden Boy Pizza","kind":"eat","lat":37.79976,"lon":-122.40809,"blurb":"Thick focaccia-style Sicilian squares since 1978. Get the clam-and-garlic. Cheap, fast, and a block from Tony's.","tip":"Counter only. Eat it in Washington Square.","url":"https://www.goldenboypizza.com"},{"name":"City Lights Booksellers","kind":"gem","lat":37.79763,"lon":-122.40662,"blurb":"Lawrence Ferlinghetti's 1953 Beat bookstore and the publisher of 'Howl'. A poetry room upstairs and three floors of unusual, carefully chosen titles.","tip":"Open 10am–10pm, so it works after a North Beach dinner.","url":"https://citylights.com"},{"name":"Vesuvio Cafe","kind":"drink","lat":37.79749,"lon":-122.40645,"blurb":"A 1948 Beat-era bar across Jack Kerouac Alley from City Lights, with a stained-glass mezzanine and decades of ephemera on the walls.","tip":"Grab a mezzanine seat by the window.","url":"https://www.vesuvio.com"},{"name":"Caffe Trieste","kind":"coffee","lat":37.79864,"lon":-122.40731,"blurb":"Opened in 1956 and said to be the first espresso house on the West Coast; Coppola reportedly wrote much of The Godfather here.","tip":"Open 7am–10pm. Bring some cash.","url":"https://www.caffetrieste.com"},{"name":"Liguria Bakery","kind":"eat","lat":37.80153,"lon":-122.40927,"blurb":"A family bakery on Washington Square since 1911 that makes only focaccia, wrapped in white paper and tied with string.","tip":"Tue–Sat 7am to noon or sellout. Morning only.","url":""},{"name":"Fortune Cookie Factory","kind":"gem","lat":37.79572,"lon":-122.40734,"blurb":"A one-room shop in Ross Alley where cookies are folded by hand off a small press. You can have custom fortunes baked in.","tip":"Open 9am–7pm. Small cash; they ask a fee for photos.","url":""},{"name":"The Buena Vista","kind":"drink","lat":37.80653,"lon":-122.42072,"blurb":"Where Irish coffee arrived in the US in 1952. Bartenders build a dozen at a time in a row of stemmed glasses, three minutes from the hotel.","tip":"Opens 8am weekends. Mornings and late evenings are calmer.","url":"https://www.thebuenavista.com"},{"name":"Saint Frank Coffee","kind":"coffee","lat":37.79848,"lon":-122.42208,"blurb":"The best specialty coffee within reach of the hotel: direct-trade beans and careful pour-overs in a bright Polk St cafe. Try the flight.","tip":"Open 7am–6pm. Seats fill with laptops, so take it to go.","url":"https://www.saintfrankcoffee.com"},{"name":"Square Pie Guys","kind":"eat","lat":37.80629,"lon":-122.42268,"blurb":"Crispy-edged Detroit-style pizza near Ghirardelli Square. An easy, good-value dinner on nights you skip North Beach.","tip":"Order at the kiosk. Open until 10:30pm Fri–Sat.","url":"https://www.squarepieguys.com"},{"name":"USS Pampanito","kind":"gem","lat":37.80999,"lon":-122.41644,"blurb":"A WWII submarine you walk through bow to stern, moored next to Musée Mécanique. Torpedo rooms, bunks and the engine room.","tip":"Open 10am–6pm, about $25. Single-file inside, so go early.","url":""},{"name":"Swan Oyster Depot","kind":"eat","lat":37.79083,"lon":-122.42096,"blurb":"A 1912 seafood counter with about 18 stools. Sicilian sashimi, cracked Dungeness crab, oysters, and banter that's half the experience.","tip":"Mon–Sat 8am–2:30pm. Arrive at opening. Long known as cash only.","url":""},{"name":"Emporium Arcade Bar","kind":"drink","lat":37.77534,"lon":-122.43766,"blurb":"Three levels of pinball, Mortal Kombat, Time Crisis and skee-ball inside the restored 1926 Harding Theater, with a full bar. The gamer night out.","tip":"21+. $10 buys 40 tokens. Opens 4pm weekdays.","url":"https://www.emporiumsf.com"},{"name":"Real Guitars","kind":"gem","lat":37.77341,"lon":-122.41749,"blurb":"A long-running shop of vintage and used guitars, basses and amps, curated with no junk. Staff let you plug in and play.","tip":"Mon–Sat 11–5. Tucked on an alley off Mission near 11th St.","url":"https://www.realguitars.com"},{"name":"Lombard Street (crooked block)","kind":"gem","lat":37.80208,"lon":-122.41875,"blurb":"The one block between Hyde and Leavenworth with eight hairpin turns, built in 1922 because the 27% grade was too steep to drive straight down. Hydrangeas line the switchbacks, and the top looks out over the bay to Coit Tower.","tip":"About a 7-minute walk uphill from the hotel. Go early morning or after dark to beat the crowds. Stairs run down both sides, and the Hyde St cable car stops at the top.","url":""}];
+/* ───────────────────────── Matt's QCon SF schedule ─────────────────────────
+   From qconsf.com/schedule/nov2026 (checked Nov 1; "subject to change"). One pick per slot,
+   with the strongest alternative in the same slot. Training days need registration, so those
+   picks are suggestions until the registrations are known. */
+const QS = 'https://qconsf.com';
+const QCON = {
+  mon: [
+    { t: '7:15', k: 'meta', title: 'Badge pickup + breakfast', room: 'Market Street Foyer · Pacific Level' },
+    { t: '9:00', k: 'key', pick: { title: 'Keynote: The Harness Is the New Operating System', who: 'Manju Rajashekhar, Mad Labs', room: 'Grand Ballroom', url: '/keynote/nov2026/harness-new-operating-system' } },
+    { t: '10:35', pick: { title: 'Running Software Factory Efficiently at Uber Scale: Holding Agent Spend Steady While Requests Grew 9X', who: 'Uday Kiran Medisetty, Uber', room: 'Ballroom A', url: '/presentation/nov2026/running-software-factory-efficiently-uber-scale-holding-agent-spend-steady', why: 'Software factory, at scale' },
+      alt: { title: 'Legacy vs. AI-Native Is the Wrong Question', who: 'Freshworks · sponsored', room: 'Pacific LM', url: '/presentation/nov2026/legacy-vs-ai-native-wrong-question-architecting-modern-platform' } },
+    { t: '11:45', pick: { title: 'Everything I Knew About Developer Experience Is Wrong for Agents', who: 'Emmanuel Paraskakis, Level 250', room: 'Pacific DEKJ', url: '/presentation/nov2026/everything-i-knew-about-developer-experience-wrong-agents', why: 'DevEx when the user is an agent' },
+      alt: { title: 'How Airbnb Guardrailed Its AI Customer Support Agent', who: 'Weiping Peng, Airbnb', room: 'Ballroom A', url: '/presentation/nov2026/how-airbnb-guardrailed-its-ai-customer-support-agent' } },
+    { t: '12:35', k: 'meta', title: 'Lunch + topic tables', room: 'Atrium level' },
+    { t: '1:35', pick: { title: 'Your Agents Lack Context: Here’s How to Fix “You’re absolutely right!”', who: 'Brandon Waselnuk, Unblocked · sponsored', room: 'Pacific LM', url: '/presentation/nov2026/your-agents-lack-context-heres-how-fix-youre-absolutely-right', why: 'Context engine territory' },
+      alt: { title: 'LLM Flip-Flops: From Reliability Risk to a Hill-Climbing Signal', who: 'Dianhuan Lin, Datadog', room: 'Ballroom A', url: '/presentation/nov2026/llm-flip-flops-reliability-risk-hill-climbing-signal' } },
+    { t: '2:45', pick: { title: 'No New Backend: The API Layer Behind 800+ Agent-Built Apps at Duolingo', who: 'Sarah Deitke, Duolingo', room: 'Pacific DEKJ', url: '/presentation/nov2026/no-new-backend-api-layer-behind-800-agent-built-apps-duolingo', why: 'Agent-built apps, governed' },
+      alt: { title: 'Wait, You’re Still Doing PRs?', who: 'Lee Faus, Atomic · sponsored', room: 'Pacific LM', url: '/presentation/nov2026/wait-youre-still-doing-prs' } },
+    { t: '3:55', pick: { title: 'Practical Concerns Running Agents in Production', who: 'Amanda Walker, Google', room: 'Ballroom A', url: '/presentation/nov2026/practical-concerns-running-agents-production' },
+      alt: { title: 'AI Amplifies Everything, Including Your Mess', who: 'Caio Sousa, Nu · sponsored', room: 'Pacific LM', url: '/presentation/nov2026/ai-amplifies-everything-including-your-mess-lessons-delivering-ai-global-scale' } },
+    { t: '5:05', pick: { title: 'Testing & Verification for Code-Generating Agents', who: 'Speaker TBA', room: 'Ballroom A', url: '/presentation/nov2026/testing-verification-code-generating-agents', why: 'Trusting agent-written code' },
+      alt: { title: 'It’s Never the Thing That Broke: Learning From Incidents at (AI) Speed', who: 'Vanessa Huerta Granda, Enova', room: 'Seacliff ABC', url: '/presentation/nov2026/its-never-thing-broke-learning-incidents-ai-speed' } },
+    { t: '6:00', k: 'meta', title: 'Conference social (until 7)', room: 'Ballroom Foyer · Pacific Level' },
+  ],
+  tue: [
+    { t: '8:00', k: 'meta', title: 'Breakfast', room: 'Pacific Level' },
+    { t: '9:00', k: 'key', pick: { title: 'Keynote: Learning Out Loud (Under Near-Existential Pressure)', who: 'Laura Savino, Adobe Photoshop', room: 'Grand Ballroom', url: '/keynote/nov2026/learning-out-loud-under-near-existential-pressure' } },
+    { t: '10:35', pick: { title: 'Feeling Faster Isn’t a Metric: Measuring AI’s Real Engineering Impact', who: 'Jeremy Castile, GitKraken · sponsored', room: 'Pacific L-O', url: '/presentation/nov2026/feeling-faster-isnt-metric-measuring-ais-real-engineering-impact', why: 'Evidence for the AI rollout' },
+      alt: { title: 'Skills, Memory, or Fine-Tuning? The Engineering Loop Behind Self-Improving Agents', who: 'Abhinav Sinha, Lucidic AI', room: 'Ballroom A', url: '/presentation/nov2026/skills-memory-or-fine-tuning-engineering-loop-behind-self-improving-agents' } },
+    { t: '11:45', pick: { title: 'Inside Asimov: BlackRock’s Platform Architecture for Applied AI at Scale', who: 'Dan Wolf & Sri Annapurna Bhupatiraju, BlackRock', room: 'Ballroom A', url: '/presentation/nov2026/inside-asimov-blackrocks-platform-architecture-applied-ai-scale', why: 'Regulated-enterprise AI platform' },
+      alt: { title: 'Use AI to Multiply Your Team as a Staff Engineer', who: 'Jordan Cutler, Pinterest', room: 'Pacific DEKJ', url: '/presentation/nov2026/use-ai-multiply-your-team-staff-engineer' } },
+    { t: '12:35', k: 'meta', title: 'Lunch + topic tables', room: 'Atrium level' },
+    { t: '1:35', pick: { title: 'The Revenge of the Data Scientist: Why Reliable AI Needs Evals, Traces, and Metrics', who: 'Hamel Husain', room: 'Ballroom A', url: '/presentation/nov2026/revenge-data-scientist-why-reliable-ai-needs-evals-traces-and-metrics' },
+      alt: { title: 'Scaling Tech by Aligning Humans', who: 'Scott Behrens, Netflix', room: 'Pacific DEKJ', url: '/presentation/nov2026/scaling-tech-aligning-humans' } },
+    { t: '2:45', pick: { title: 'Lessons from Building a $100M Product in Six Weeks at OpenAI', who: 'Brian Yang, OpenAI', room: 'Ballroom A', url: '/presentation/nov2026/lessons-building-100m-product-six-weeks-openai' },
+      alt: { title: 'Trust, but Verify: Delivering Quality with Agentic Workflows', who: 'Adrian Hatch, Antithesis · sponsored', room: 'Pacific LM', url: '/presentation/nov2026/trust-verify-delivering-quality-agentic-workflows' } },
+    { t: '3:55', pick: { title: 'Learning What’s Already There: A Breadth-Based Approach to Onboarding', who: 'Laura de Vesine', room: 'Pacific DEKJ', url: '/presentation/nov2026/learning-whats-already-there-breadth-based-approach-onboarding', why: 'Cartographer’s problem, by hand' },
+      alt: { title: 'When Your Users Are Agents: Lessons from a Distributed Postgres Platform', who: 'Gwen Shapira, Nile', room: 'Ballroom BC', url: '/presentation/nov2026/when-your-users-are-agents-lessons-distributed-postgres-platform' } },
+    { t: '5:05', pick: { title: 'Adaptive Systems in Production: What Recommendation Systems Can Teach Us About Agents', who: 'Mallika Rao, Zocdoc', room: 'Ballroom BC', url: '/presentation/nov2026/adaptive-systems-production-what-recommendation-systems-can-teach-us-about' },
+      alt: { title: 'Failing in Layers: Rebuilding Netflix’s ML Serving Platform', who: 'Rajat Shah & Wenbing Bai, Netflix', room: 'Ballroom A', url: '/presentation/nov2026/failing-layers-lessons-rebuilding-netflixs-ml-serving-platform' } },
+    { t: '6:00', k: 'meta', title: 'Reception (until 6:30)', room: 'Ballroom Foyer · Pacific Level' },
+  ],
+  wed: [
+    { t: '8:00', k: 'meta', title: 'Breakfast', room: 'Pacific Level' },
+    { t: '9:00', k: 'key', pick: { title: 'Keynote: The Execution Muscle: Why Great Teams Are Built, Not Hired', who: 'Charlotte Mestwerdt, Bravely', room: 'Grand Ballroom', url: '/keynote/nov2026/execution-muscle-why-great-teams-are-built-not-hired' } },
+    { t: '10:35', pick: { title: 'How Netflix Retrofitted Its SDLC for AI Coding Agents', who: 'Mark Khuzam, Netflix', room: 'Ballroom BC', url: '/presentation/nov2026/how-netflix-retrofitted-its-sdlc-ai-coding-agents', why: 'The AI-DLC question, answered by Netflix' },
+      alt: { title: 'Features With Futures', who: 'Kent Beck', room: 'Ballroom A', url: '/presentation/nov2026/features-futures' } },
+    { t: '11:45', pick: { title: 'No More Small Systems: How AI May Bring Large System Problems to Everyone', who: 'Adam Bender, Google', room: 'Ballroom A', url: '/presentation/nov2026/no-more-small-systems-how-ai-may-bring-large-system-problems-everyone' },
+      alt: { title: 'Making Production Legible to Agents: Building an Observability MCP', who: 'Liz Fong-Jones, Honeycomb', room: 'Ballroom BC', url: '/presentation/nov2026/making-production-legible-agents-lessons-building-observability-mcp' } },
+    { t: '12:35', k: 'meta', title: 'Lunch + topic tables', room: 'Atrium level' },
+    { t: '1:35', pick: { title: 'Growing Engineers in the Era of Agentic Coding', who: 'Adam Berry, Netflix', room: 'Ballroom A', url: '/presentation/nov2026/growing-engineers-era-agentic-coding' },
+      alt: { title: 'The Death of the Code Review', who: 'Laurie Voss, Arize AI', room: 'Seacliff ABC', url: '/presentation/nov2026/death-code-review' } },
+    { t: '2:45', pick: { title: 'Shipping Faster, Understanding Less', who: 'Margaret-Anne Storey, University of Victoria', room: 'Ballroom A', url: '/presentation/nov2026/shipping-faster-understanding-less', why: 'Research, not vendor claims' },
+      alt: { title: 'Why Most Platform Teams Fail: The Adoption Problem Nobody Wants to Own', who: 'Shweta Vohra, Booking.com', room: 'Pacific DEKJ', url: '/presentation/nov2026/why-most-platform-teams-fail-adoption-problem-nobody-wants-own' } },
+    { t: '3:55', pick: { title: 'The Diary of an AI Adopter: From Skeptical to Enthusiastic in an Org-Wide AI Migration', who: 'Tara Hernandez, MongoDB', room: 'Ballroom A', url: '/presentation/nov2026/diary-ai-adopter-how-i-went-skeptical-enthusiastic-our-organizations-ai', why: 'Rollout to thousands of devs' },
+      alt: { title: 'Avoiding Prompt Debt & Other Context Failures', who: 'Drew Breunig, Cmpnd', room: 'Ballroom BC', url: '/presentation/nov2026/avoiding-prompt-debt-other-context-failures' } },
+    { t: '4:45', k: 'meta', title: 'Closing reception', room: 'Ballroom Foyer' },
+    { t: '5:15', k: 'key', pick: { title: 'Evening keynote: Game Time: How to (Unsuccessfully) 10x in a Week & (Successfully) 10x in a Year', who: 'Plum Ertz, Ro', room: 'Grand Ballroom', url: '/keynote/nov2026/game-time-how-unsuccessfully-10x-week-successfully-10x-year' } },
+  ],
+  thu: [
+    { t: '9:00', k: 'train', pick: { title: 'Measuring What Matters: Building a Developer Productivity Program Engineers Can Trust', who: 'Grey Newell · half day', room: 'Hyatt Regency', url: '/training/nov2026', why: 'Measurement for 4,000 devs' },
+      alt: { title: 'Supercharge Your Work With Claude Code and Codex', who: 'Khawaja Shams · half day', room: 'Hyatt Regency', url: '/training/nov2026' } },
+    { t: '1:00', k: 'train', pick: { title: 'How To Write Skills That Actually Work', who: 'Baruch Sadogursky · half day', room: 'Hyatt Regency', url: '/training/nov2026', why: 'Agent skills' },
+      alt: { title: 'AI-Assisted Coding Master Class: Build Your Mission Control', who: 'Sepehr Khosravi & Dev Bali · half day', room: 'Hyatt Regency', url: '/training/nov2026' } },
+  ],
+  fri: [
+    { t: '9:00', k: 'train', pick: { title: 'Effective AI-Native Development with Harness Engineering', who: 'Zichuan Xiong & Premanand Chandrasekaran · full day', room: 'Hyatt Regency', url: '/training/nov2026', why: 'Harness + factory, hands-on' },
+      alt: { title: 'Agent MCP Workshop: Building Your Own Java-Based MCP Server', who: 'David Parry, Qodo · full day', room: 'Hyatt Regency', url: '/training/nov2026' } },
+  ],
+};
+const QCON_NOTE = {
+  thu: 'Workshops need registration. These are suggestions; swap in what you signed up for.',
+  fri: 'Full-day workshop; registration required.',
+};
+function qconPm(t) { const h = +t.split(':')[0]; return h >= 7 && h <= 11 ? 'AM' : 'PM'; }
+function qconAgenda(dayId, { print = false } = {}) {
+  const rows = QCON[dayId];
+  if (!rows) return null;
+  const link = (x, cls) => el('a', { class: cls, href: QS + x.url, target: '_blank', rel: 'noopener', text: x.title, onclick: (e) => e.stopPropagation() });
+  const items = rows.map((r) => {
+    const time = el('span', { class: 'qa-t', text: `${r.t}${print ? ` ${qconPm(r.t)}` : ''}` });
+    if (r.k === 'meta') return el('li', { class: 'qa-meta' }, [time, el('span', { class: 'qa-b' }, [el('span', { class: 'qa-title', text: r.title }), el('span', { class: 'qa-room', text: r.room })])]);
+    const p = r.pick;
+    return el('li', { class: `qa-${r.k || 'talk'}` }, [time, el('span', { class: 'qa-b' }, [
+      link(p, 'qa-title'),
+      el('span', { class: 'qa-who' }, [p.who, el('b', { class: 'qa-room', text: ` · ${p.room}` })]),
+      p.why ? el('span', { class: 'qa-why', text: p.why }) : null,
+      r.alt ? el('span', { class: 'qa-alt' }, ['or ', link(r.alt, ''), el('span', { class: 'qa-room', text: ` · ${r.alt.room}` })]) : null,
+    ])]);
+  });
+  return el('div', { class: 'qagenda' }, [
+    el('div', { class: 'qa-h' }, [el('span', { text: 'My QCon schedule' }), el('a', { href: `${QS}/schedule/nov2026`, target: '_blank', rel: 'noopener', text: 'Full program ↗', onclick: (e) => e.stopPropagation() })]),
+    QCON_NOTE[dayId] ? el('p', { class: 'qa-note', text: QCON_NOTE[dayId] }) : null,
+    el('ol', {}, items),
+  ]);
+}
+
 'use strict';
 /* Operation Fog City — trip globe built on the God's Eye View stack. */
 
@@ -1646,35 +1773,35 @@ const DAYS = [
     sub: 'Keynotes and sessions at the Hyatt Regency, then Italian in North Beach.',
     stops: [
       { t: '7:15 AM', n: 'F-line streetcar to the Embarcadero', lat: 37.8077, lon: -122.4146, range: 900, d: 'The historic F Market & Wharves line runs from near the hotel along the waterfront. Badge pickup opens at 7:15.' },
-      { via: 'streetcar', t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Keynote, sessions and the 6–7 PM social. On the agenda: The Harness Is the New Operating System, and a software-factory efficiency talk.' },
+      { via: 'streetcar', t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Badge pickup from 7:15, keynote at 9 in the Grand Ballroom, sessions until 6, then the 6–7 PM social.' },
       { via: 'drive', t: '7:15 PM', n: 'North Beach dinner', until: '9:00 PM', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
     ] },
   { id: 'tue', dw: 'TUE', dn: 17, tag: 'QCon',
     title: 'Conference & Chinatown', eyebrow: 'Tuesday · Conference · Evening out',
     sub: 'Day two at QCon, then dinner on Grant Avenue and a cable car if they\'re running.',
     stops: [
-      { t: 'All day', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'AI systems, staff-plus engineering and distributed systems tracks.' },
+      { t: '9 AM–6:30 PM', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Breakfast from 8, keynote at 9, sessions until 6, then a short reception.' },
       { via: 'walk', t: '7:15 PM', n: 'Chinatown + cable cars', until: '9:30 PM', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
     ] },
   { id: 'wed', dw: 'WED', dn: 18, tag: 'QCon',
     title: 'QCon finale', eyebrow: 'Wednesday · Conference · Evening out',
     sub: 'Last main conference day, then a pier full of antique arcade machines.',
     stops: [
-      { t: 'All day', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Architecting for agents and engineering the developer experience.' },
+      { t: '9 AM–6 PM', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Keynote at 9, sessions until 4:45, the closing reception, then an evening keynote at 5:15.' },
       { via: 'drive', t: '7:00 PM', n: 'Musée Mécanique', until: '8:00 PM', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
     ] },
   { id: 'thu', dw: 'THU', dn: 19, tag: 'Training',
     title: 'Training + After Dark', eyebrow: 'Thursday · QCon training · Evening event',
     sub: 'A full day of QCon workshops, then an adults-only night at the Exploratorium.',
     stops: [
-      { t: '9 AM–4 PM', n: 'QCon training day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Workshops on agent SDKs, Claude Code and Codex, and developer productivity.' },
+      { t: '9 AM–4 PM', n: 'QCon training day 1', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 800, d: 'Two half-day workshops, 9 AM and 1 PM.' },
       { via: 'walk', t: '6–10 PM', n: 'Exploratorium After Dark: Glow', lat: 37.8017, lon: -122.3973, must: true, range: 600, d: 'Adults-only night at the science museum on Pier 15, with interactive exhibits and art made with light. A short walk up the Embarcadero from the Hyatt. Reserve ahead.' },
     ] },
   { id: 'fri', dw: 'FRI', dn: 20, tag: 'Training',
     title: 'Training + the Bay at night', eyebrow: 'Friday · QCon training · Check the flight',
     sub: 'The last workshop day, then two hours on the Bay at dusk.',
     stops: [
-      { t: '9 AM–4 PM', n: 'QCon training day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 900, d: 'The Friday full-day workshop at the Hyatt Regency.' },
+      { t: '9 AM–4 PM', n: 'QCon training day 2', lat: HYATT.lat, lon: HYATT.lon, conf: true, range: 900, d: 'One full-day workshop at the Hyatt Regency.' },
       { via: 'streetcar', t: '5:30 PM', n: 'City Lights Cruise', until: '7:30 PM', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
     ] },
 ];
@@ -2710,6 +2837,7 @@ function stopRow(s) {
         sel ? el('div', { class: 'gm-stop', 'data-gm-stop': s.id }) : null,
       ]),
     ]));
+    if (s.conf) { const ag = qconAgenda(DAYS[s.day].id); if (ag) li.append(ag); }
     if (sel) {
       const near = nearbyFor(s);
       if (near.length) {
@@ -4257,6 +4385,7 @@ function buildPrintDoc() {
         ]),
         el('td', { class: 'pd-how', text: how }),
       ]));
+      if (s.conf && QCON[d.id]) rows.push(el('tr', { class: 'pd-qa' }, [el('td'), el('td', { colspan: '2' }, qconAgenda(d.id, { print: true }))]));
     });
     const picks = PLACES.filter((p) => p.near.s.day === di)
       .sort((a, b) => (hearted.has(b.id) - hearted.has(a.id)) || a.near.m - b.near.m)

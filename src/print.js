@@ -78,6 +78,7 @@ function buildPrintDoc() {
         ]),
         el('td', { class: 'pd-how', text: how }),
       ]));
+      if (s.conf && QCON[d.id]) rows.push(el('tr', { class: 'pd-qa' }, [el('td'), el('td', { colspan: '2' }, qconAgenda(d.id, { print: true }))]));
     });
     const picks = PLACES.filter((p) => p.near.s.day === di)
       .sort((a, b) => (hearted.has(b.id) - hearted.has(a.id)) || a.near.m - b.near.m)
