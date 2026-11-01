@@ -2,7 +2,7 @@
 
 Matt & Val's San Francisco trip, Nov 14–20, 2026, on a 3D globe.
 
-Live: https://vosbek.github.io/trip-view/
+Live: https://vosbek.github.io/Trip-view/
 
 - `site/` is the deployed static site (CesiumJS 1.138, the trip page, the schematic city pack, photos).
 - `src/` holds the sources the page was assembled from.
