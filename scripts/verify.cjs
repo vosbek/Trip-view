@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
     await p.goto(url + (opts.query || '') + (opts.hash || ''), { waitUntil: 'load' });
     await p.waitForTimeout(opts.wait || 30000);
     if (opts.js) { await p.evaluate(opts.js); await p.waitForTimeout(opts.after || 20000); }
-    const info = await p.evaluate(() => ({ sat: typeof satellite !== 'undefined' && satellite, map: typeof mapMode !== 'undefined' && mapMode, routes: typeof ROUTES !== 'undefined' ? Object.keys(ROUTES).length : -1, weather: typeof WEATHER !== 'undefined' && !!WEATHER, now: document.querySelector('#nowText')?.textContent, loop: typeof widget !== 'undefined' && widget.useDefaultRenderLoop, cam: typeof camera !== 'undefined' && Math.round(camera.positionCartographic.height), chip: document.querySelector('#link')?.textContent }));
+    const info = await p.evaluate(() => ({ sat: typeof satellite !== 'undefined' && satellite, map: typeof mapMode !== 'undefined' && mapMode, routes: typeof ROUTES !== 'undefined' ? Object.keys(ROUTES).length : -1, weather: typeof WEATHER !== 'undefined' && !!WEATHER, now: document.querySelector('#nowText')?.textContent, loop: typeof widget !== 'undefined' && widget.useDefaultRenderLoop, cam: typeof camera !== 'undefined' && Math.round(camera.positionCartographic.height), chip: document.querySelector('#link')?.textContent, hours: document.querySelector('.gm-hours')?.textContent?.slice(0, 80), sv: document.querySelector('.gm-sv img')?.naturalWidth || 0, traffic: document.querySelector('.gm-traffic')?.textContent || '', fly: !!document.querySelector('.gm-fly') }));
     log.push(`${name} ${JSON.stringify(info)}`);
     await p.screenshot({ path: `${out}/${name}.png`, timeout: 120000 });
     await ctx.close();
@@ -25,6 +25,7 @@ const { chromium } = require('playwright');
   await shot('phone', { width: 390, height: 844 }, { hash: '#sun', wait: 30000 });
   await shot('replay', { width: 1440, height: 900 }, { hash: '#sat', wait: 25000, js: 'setTab("replay"); setTimeout(() => { Replay.t = 930; }, 6000)', after: 15000 });
   await shot('light', { width: 1440, height: 900 }, { hash: '#sun', wait: 25000, js: 'setTab("light")', after: 12000 });
+  await shot('google', { width: 1440, height: 900 }, { hash: '#sat', wait: 30000, js: 'openPlace(PLACES.find((p) => p.id === "the-buena-vista")); selectStop(0, 2, { fly: false })', after: 15000 });
   require('fs').writeFileSync(`${out}/log.txt`, log.join('\n') + '\n');
   console.log(log.join('\n'));
   await b.close();
