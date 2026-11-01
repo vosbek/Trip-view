@@ -1,0 +1,249 @@
+[
+ {
+  "id": "sat-1",
+  "mode": "drive",
+  "from": [
+   -122.39,
+   37.6152
+  ],
+  "to": [
+   -122.4177,
+   37.808
+  ],
+  "name": "Wheels down → Kimpton Alton → Quick lunch at the Wharf"
+ },
+ {
+  "id": "sat-2",
+  "mode": "drive",
+  "from": [
+   -122.4177,
+   37.808
+  ],
+  "to": [
+   -122.4484,
+   37.8029
+  ],
+  "name": "Quick lunch at the Wharf → Palace of Fine Arts"
+ },
+ {
+  "id": "sat-3",
+  "mode": "walk",
+  "from": [
+   -122.4484,
+   37.8029
+  ],
+  "to": [
+   -122.4497,
+   37.7986
+  ],
+  "name": "Palace of Fine Arts → Yoda Fountain"
+ },
+ {
+  "id": "sat-4",
+  "mode": "walk",
+  "from": [
+   -122.4497,
+   37.7986
+  ],
+  "to": [
+   -122.4485,
+   37.7931
+  ],
+  "name": "Yoda Fountain → Lovers' Lane + Wood Line"
+ },
+ {
+  "id": "sat-6",
+  "mode": "drive",
+  "from": [
+   -122.4485,
+   37.7931
+  ],
+  "to": [
+   -122.5081,
+   37.7838
+  ],
+  "name": "Lovers' Lane + Wood Line → Lands End Coastal Trail"
+ },
+ {
+  "id": "sat-7",
+  "mode": "walk",
+  "from": [
+   -122.5081,
+   37.7838
+  ],
+  "to": [
+   -122.5137,
+   37.7804
+  ],
+  "name": "Lands End Coastal Trail → Sutro Baths + sunset"
+ },
+ {
+  "id": "sat-8",
+  "mode": "drive",
+  "from": [
+   -122.5137,
+   37.7804
+  ],
+  "to": [
+   -122.4101,
+   37.8008
+  ],
+  "name": "Sutro Baths + sunset → Dinner: North Beach or the Wharf"
+ },
+ {
+  "id": "sun-2",
+  "mode": "drive",
+  "from": [
+   -122.4201,
+   37.8069
+  ],
+  "to": [
+   -122.5716,
+   37.8916
+  ],
+  "name": "Pick up the rental car → Muir Woods"
+ },
+ {
+  "id": "sun-3",
+  "mode": "drive",
+  "from": [
+   -122.5716,
+   37.8916
+  ],
+  "to": [
+   -122.5866,
+   37.8622
+  ],
+  "name": "Muir Woods → Muir Beach Overlook"
+ },
+ {
+  "id": "sun-4",
+  "mode": "drive",
+  "from": [
+   -122.5866,
+   37.8622
+  ],
+  "to": [
+   -122.4848,
+   37.8596
+  ],
+  "name": "Muir Beach Overlook → Sausalito waterfront + lunch"
+ },
+ {
+  "id": "sun-5",
+  "mode": "drive",
+  "from": [
+   -122.4848,
+   37.8596
+  ],
+  "to": [
+   -122.4836,
+   37.8277
+  ],
+  "name": "Sausalito waterfront + lunch → Battery Spencer"
+ },
+ {
+  "id": "sun-6",
+  "mode": "drive",
+  "from": [
+   -122.4836,
+   37.8277
+  ],
+  "to": [
+   -122.4752,
+   37.8077
+  ],
+  "name": "Battery Spencer → Bridge Welcome Center"
+ },
+ {
+  "id": "sun-7",
+  "mode": "drive",
+  "from": [
+   -122.4752,
+   37.8077
+  ],
+  "to": [
+   -122.4201,
+   37.8069
+  ],
+  "name": "Bridge Welcome Center → Return the car + dinner"
+ },
+ {
+  "id": "mon-1",
+  "mode": "streetcar",
+  "from": [
+   -122.4146,
+   37.8077
+  ],
+  "to": [
+   -122.3954,
+   37.7946
+  ],
+  "name": "F-line streetcar to the Embarcadero → QCon day 1"
+ },
+ {
+  "id": "mon-2",
+  "mode": "drive",
+  "from": [
+   -122.3954,
+   37.7946
+  ],
+  "to": [
+   -122.4101,
+   37.8008
+  ],
+  "name": "QCon day 1 → North Beach dinner"
+ },
+ {
+  "id": "tue-1",
+  "mode": "walk",
+  "from": [
+   -122.3954,
+   37.7946
+  ],
+  "to": [
+   -122.4058,
+   37.7908
+  ],
+  "name": "QCon day 2 → Chinatown + cable cars"
+ },
+ {
+  "id": "wed-1",
+  "mode": "drive",
+  "from": [
+   -122.3954,
+   37.7946
+  ],
+  "to": [
+   -122.4159,
+   37.8094
+  ],
+  "name": "QCon day 3 → Musée Mécanique"
+ },
+ {
+  "id": "thu-2",
+  "mode": "walk",
+  "from": [
+   -122.423,
+   37.8267
+  ],
+  "to": [
+   -122.3973,
+   37.8017
+  ],
+  "name": "Alcatraz, if reopened → Exploratorium After Dark: Glow"
+ },
+ {
+  "id": "fri-1",
+  "mode": "streetcar",
+  "from": [
+   -122.3954,
+   37.7946
+  ],
+  "to": [
+   -122.4148,
+   37.8087
+  ],
+  "name": "Training or a free day → City Lights Cruise"
+ }
+]

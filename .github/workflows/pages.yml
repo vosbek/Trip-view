@@ -3,6 +3,8 @@ name: Deploy Operation Fog City
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "17 12 * * *"   # daily forecast refresh
   workflow_dispatch:
 
 permissions:
@@ -25,13 +27,21 @@ jobs:
           pip install --quiet pillow
           python3 scripts/fetch_photos.py
 
-      - name: Commit new photos back to the repo
+      - name: Fetch walking and driving routes (OSRM, OpenStreetMap)
+        run: python3 scripts/fetch_routes.py
+        continue-on-error: true
+
+      - name: Fetch the NWS forecast
+        run: python3 scripts/fetch_weather.py
+        continue-on-error: true
+
+      - name: Commit fetched data back to the repo
         run: |
-          if [ -n "$(git status --porcelain site/photos)" ]; then
+          git add site/photos site/data/routes.json site/data/weather.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-            git add site/photos
-            git commit -m "Add location photos [skip ci]"
+            git commit -m "Update photos, routes and forecast [skip ci]"
             git push
           fi
 
@@ -53,3 +63,27 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  verify:
+    needs: deploy
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Screenshot the live site
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+          mkdir -p shots
+          node scripts/verify.cjs "https://vosbek.github.io/Trip-view/" shots
+      - name: Publish screenshots to the ci-shots branch
+        run: |
+          cd shots
+          git init -q -b ci-shots
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "Screenshots of ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-shots

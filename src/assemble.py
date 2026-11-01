@@ -25,7 +25,17 @@ page = page.replace('/*@@PLACES@@*/', places)
 page = page.replace('/*@@PHOTOS@@*/', json.dumps(ph, ensure_ascii=False, separators=(',',':')))
 pathlib.Path('/home/claude/fogcity/site/index.html').write_text(page)
 # full standalone doc for self-hosting
-doc = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' + page.replace('<div id="app">', '</head>\n<body>\n<div id="app">',1) + '\n</body>\n</html>\n'
+OG = """<meta property="og:type" content="website">
+<meta property="og:title" content="Operation Fog City">
+<meta property="og:description" content="Matt & Val's San Francisco week, Nov 14–20, on a 3D globe: every stop, food and hidden gems nearby, and the fog.">
+<meta property="og:url" content="https://vosbek.github.io/Trip-view/">
+<meta property="og:image" content="https://vosbek.github.io/Trip-view/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f7f8f7">
+"""
+doc = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' + OG + page.replace('<div id="app">', '</head>\n<body>\n<div id="app">',1) + '\n</body>\n</html>\n'
 pathlib.Path('/home/claude/fogcity/dist').mkdir(exist_ok=True)
 pathlib.Path('/home/claude/fogcity/build/standalone.html').write_text(doc)
 print(len(page)//1024, 'KB')

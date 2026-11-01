@@ -7,9 +7,12 @@ Live: https://vosbek.github.io/Trip-view/
 - `site/` is the deployed static site (CesiumJS 1.138, the trip page, the schematic city pack, photos).
 - `src/` holds the sources the page was assembled from.
 - `scripts/fetch_photos.py` pulls the location photos from Wikimedia Commons during the Pages build.
+- `scripts/fetch_routes.py` gets real walking and driving routes between stops (OSRM on OpenStreetMap data).
+- `scripts/fetch_weather.py` pulls the National Weather Service forecast; the workflow runs daily to refresh it.
+- `scripts/verify.cjs` screenshots the live site after each deploy into the `ci-shots` branch.
 
-When the page can reach Esri World Imagery and Re:Earth terrain (it can on GitHub Pages), a
-"Satellite imagery" switch appears under Map layers.
+On GitHub Pages the map opens on Esri World Imagery with Re:Earth terrain; switch back to the
+drawn map under Map layers. Inside the claude.ai link it stays on the drawn map.
 
 ## Credits
 

@@ -3,6 +3,9 @@
 
 const C = window.Cesium;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LOW = matchMedia('(pointer: coarse)').matches || innerWidth < 860 || (navigator.hardwareConcurrency || 8) <= 4;
+const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
+const perf = { fogSteps: LOW ? 10 : 20, near: LOW ? 4500 : 7500, level: 0 };
 const $ = (s) => document.querySelector(s);
 const el = (tag, attrs = {}, kids = []) => {
   const n = document.createElement(tag);
@@ -30,14 +33,14 @@ const DAYS = [
     sub: 'Arrive, drop bags, then Presidio art, the Lands End trail and Sutro Baths for sunset.',
     stops: [
       { t: '9:30–11:30 AM', n: 'Wheels down → Kimpton Alton', lat: SFO.lat, lon: SFO.lon, range: 9000, d: 'Land at SFO, collect bags, rideshare to the hotel and leave luggage at the front desk before check-in.', also: HOTEL },
-      { t: '11:30 AM', n: "Quick lunch at the Wharf", lat: 37.8080, lon: -122.4177, range: 900, d: 'Something simple near the hotel. Keep it short to save the afternoon light.' },
-      { t: '12:15 PM', n: 'Palace of Fine Arts', lat: 37.8029, lon: -122.4484, must: true, range: 700, d: 'The rotunda, colonnades and lagoon, built for the 1915 Panama-Pacific Exposition. Outdoor architecture rather than a museum.' },
-      { t: '1:05 PM', n: 'Yoda Fountain', lat: 37.7986, lon: -122.4497, must: true, range: 450, d: 'The bronze Yoda at Lucasfilm\'s One Letterman campus in the Presidio. Outdoors and open on weekends.' },
-      { t: '1:35 PM', n: "Lovers' Lane + Wood Line", lat: 37.7931, lon: -122.4485, must: true, range: 650, d: "Walk part of the Presidio's oldest footpath to Andy Goldsworthy's Wood Line, eucalyptus trunks laid in a long curving line through the grove. Prioritize Wood Line over finishing the lane." },
+      { via: 'drive', t: '11:30 AM', n: "Quick lunch at the Wharf", lat: 37.8080, lon: -122.4177, range: 900, d: 'Something simple near the hotel. Keep it short to save the afternoon light.' },
+      { via: 'drive', t: '12:15 PM', n: 'Palace of Fine Arts', lat: 37.8029, lon: -122.4484, must: true, range: 700, d: 'The rotunda, colonnades and lagoon, built for the 1915 Panama-Pacific Exposition. Outdoor architecture rather than a museum.' },
+      { via: 'walk', t: '1:05 PM', n: 'Yoda Fountain', lat: 37.7986, lon: -122.4497, must: true, range: 450, d: 'The bronze Yoda at Lucasfilm\'s One Letterman campus in the Presidio. Outdoors and open on weekends.' },
+      { via: 'walk', t: '1:35 PM', n: "Lovers' Lane + Wood Line", lat: 37.7931, lon: -122.4485, must: true, range: 650, d: "Walk part of the Presidio's oldest footpath to Andy Goldsworthy's Wood Line, eucalyptus trunks laid in a long curving line through the grove. Prioritize Wood Line over finishing the lane." },
       { leg: true, t: '2:20 PM', n: 'Rideshare west to Lands End Lookout' },
-      { t: '2:50 PM', n: 'Lands End Coastal Trail', lat: 37.7838, lon: -122.5081, must: true, range: 1500, d: 'Out-and-back toward Mile Rock for cypress, Pacific and Golden Gate views. Stairs and uneven ground. Turn around in time for the baths.' },
-      { t: '3:55 PM', n: 'Sutro Baths + sunset', lat: 37.7804, lon: -122.5137, must: true, range: 700, d: 'Ruins of an 1896 bathhouse that once held seven pools. Sunset is about 4:58. Stay off the rocks and away from the surf.' },
-      { t: '6:30 PM', n: 'Dinner: North Beach or the Wharf', lat: 37.8008, lon: -122.4101, flex: true, range: 900, d: 'Check in and freshen up, then North Beach for dinner. Pier 39 and Ghirardelli Square are easy add-ons near the hotel.' },
+      { via: 'drive', t: '2:50 PM', n: 'Lands End Coastal Trail', lat: 37.7838, lon: -122.5081, must: true, range: 1500, d: 'Out-and-back toward Mile Rock for cypress, Pacific and Golden Gate views. Stairs and uneven ground. Turn around in time for the baths.' },
+      { via: 'walk', t: '3:55 PM', n: 'Sutro Baths + sunset', lat: 37.7804, lon: -122.5137, must: true, range: 700, d: 'Ruins of an 1896 bathhouse that once held seven pools. Sunset is about 4:58. Stay off the rocks and away from the surf.' },
+      { via: 'drive', t: '6:30 PM', n: 'Dinner: North Beach or the Wharf', lat: 37.8008, lon: -122.4101, flex: true, range: 900, d: 'Check in and freshen up, then North Beach for dinner. Pier 39 and Ghirardelli Square are easy add-ons near the hotel.' },
     ] },
   { id: 'sun', dw: 'SUN', dn: 15, tag: 'Redwoods', out: true,
     title: 'Redwood road trip', eyebrow: 'Sunday · Marin County · Rental car',
@@ -45,49 +48,49 @@ const DAYS = [
     stops: [
       { t: '7:30 AM', n: 'Pick up the rental car', lat: AVIS.lat, lon: AVIS.lon, range: 700, d: 'Avis at Anchorage Square, 500 Beach St, a short walk from the hotel. Leave luggage and laptops at the hotel.' },
       { leg: true, t: '8:00 AM', n: 'North across the Golden Gate Bridge' },
-      { t: '9:00 AM', n: 'Muir Woods', lat: 37.8916, lon: -122.5716, must: true, range: 2200, d: 'Main Trail along Redwood Creek through coast redwoods, some over 1,000 years old. About 90 minutes. Timed parking reservation required, and there\'s no signal.' },
-      { t: '11:15 AM', n: 'Muir Beach Overlook', lat: 37.8622, lon: -122.5866, must: true, range: 1200, d: 'Cliff-top WWII lookout over the Pacific. Windy. Stay behind the rails.' },
-      { t: '12:30 PM', n: 'Sausalito waterfront + lunch', lat: 37.8596, lon: -122.4848, range: 1000, d: 'Harbor walk on Bridgeway. Bar Bocce does pizza on the sand.' },
-      { t: '2:00 PM', n: 'Battery Spencer', lat: 37.8277, lon: -122.4836, must: true, range: 1300, d: 'The classic elevated shot of the Golden Gate Bridge from the Marin Headlands. Parking is tight; allow extra time.' },
-      { t: '3:00 PM', n: 'Bridge Welcome Center', lat: 37.8077, lon: -122.4752, must: true, range: 1100, d: 'Drive south across the bridge, see the exhibits and walk a stretch of the span if the weather allows.' },
-      { t: '4:15 PM', n: 'Return the car + dinner', lat: AVIS.lat, lon: AVIS.lon, range: 800, d: 'Refuel, return the car to Avis during business hours, then an easy dinner before QCon.' },
+      { via: 'drive', t: '9:00 AM', n: 'Muir Woods', lat: 37.8916, lon: -122.5716, must: true, range: 2200, d: 'Main Trail along Redwood Creek through coast redwoods, some over 1,000 years old. About 90 minutes. Timed parking reservation required, and there\'s no signal.' },
+      { via: 'drive', t: '11:15 AM', n: 'Muir Beach Overlook', lat: 37.8622, lon: -122.5866, must: true, range: 1200, d: 'Cliff-top WWII lookout over the Pacific. Windy. Stay behind the rails.' },
+      { via: 'drive', t: '12:30 PM', n: 'Sausalito waterfront + lunch', lat: 37.8596, lon: -122.4848, range: 1000, d: 'Harbor walk on Bridgeway. Bar Bocce does pizza on the sand.' },
+      { via: 'drive', t: '2:00 PM', n: 'Battery Spencer', lat: 37.8277, lon: -122.4836, must: true, range: 1300, d: 'The classic elevated shot of the Golden Gate Bridge from the Marin Headlands. Parking is tight; allow extra time.' },
+      { via: 'drive', t: '3:00 PM', n: 'Bridge Welcome Center', lat: 37.8077, lon: -122.4752, must: true, range: 1100, d: 'Drive south across the bridge, see the exhibits and walk a stretch of the span if the weather allows.' },
+      { via: 'drive', t: '4:15 PM', n: 'Return the car + dinner', lat: AVIS.lat, lon: AVIS.lon, range: 800, d: 'Refuel, return the car to Avis during business hours, then an easy dinner before QCon.' },
     ] },
   { id: 'mon', dw: 'MON', dn: 16, tag: 'QCon',
     title: 'QCon begins', eyebrow: 'Monday · Conference · Evening out',
     sub: 'Keynotes and sessions at the Hyatt Regency, then Italian in North Beach.',
     stops: [
       { t: '7:15 AM', n: 'F-line streetcar to the Embarcadero', lat: 37.8077, lon: -122.4146, range: 900, d: 'The historic F Market & Wharves line runs from near the hotel along the waterfront. Badge pickup opens at 7:15.' },
-      { t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'Keynote, sessions and the 6–7 PM social. On the agenda: The Harness Is the New Operating System, and a software-factory efficiency talk.' },
-      { t: '7:15 PM', n: 'North Beach dinner', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
+      { via: 'streetcar', t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'Keynote, sessions and the 6–7 PM social. On the agenda: The Harness Is the New Operating System, and a software-factory efficiency talk.' },
+      { via: 'drive', t: '7:15 PM', n: 'North Beach dinner', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
     ] },
   { id: 'tue', dw: 'TUE', dn: 17, tag: 'QCon',
     title: 'Conference & Chinatown', eyebrow: 'Tuesday · Conference · Evening out',
     sub: 'Day two at QCon, then dinner on Grant Avenue and a cable car if they\'re running.',
     stops: [
       { t: 'All day', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'AI systems, staff-plus engineering and distributed systems tracks.' },
-      { t: '7:15 PM', n: 'Chinatown + cable cars', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
+      { via: 'walk', t: '7:15 PM', n: 'Chinatown + cable cars', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
     ] },
   { id: 'wed', dw: 'WED', dn: 18, tag: 'QCon',
     title: 'QCon finale', eyebrow: 'Wednesday · Conference · Evening out',
     sub: 'Last main conference day, then a pier full of antique arcade machines.',
     stops: [
       { t: 'All day', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'Architecting for agents and engineering the developer experience.' },
-      { t: '7:00 PM', n: 'Musée Mécanique', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
+      { via: 'drive', t: '7:00 PM', n: 'Musée Mécanique', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
     ] },
   { id: 'thu', dw: 'THU', dn: 19, tag: 'Flex',
     title: 'The flexible day', eyebrow: 'Thursday · Conditional · Evening event',
     sub: 'Alcatraz if the dock reopens, or a training workshop. Either way, the Exploratorium after dark.',
     stops: [
       { t: '9:30 AM', n: 'Alcatraz, if reopened', lat: 37.8267, lon: -122.4230, flex: true, range: 1400, d: 'Ferries leave from Pier 33. The operator expects to reopen on Nov 19 after dock repairs, but it isn\'t guaranteed. Allow 3–4 hours.' },
-      { t: '9 AM–4 PM', n: 'Or: QCon training', lat: HYATT.lat, lon: HYATT.lon, flex: true, range: 800, d: 'Workshops on agent SDKs, Claude Code and Codex, and developer productivity. Skip Alcatraz if you\'re enrolled.' },
-      { t: '6–10 PM', n: 'Exploratorium After Dark: Glow', lat: 37.8017, lon: -122.3973, must: true, range: 600, d: 'Adults-only night at the science museum on Pier 15, with interactive exhibits and art made with light. Reserve ahead.' },
+      { via: 'none', t: '9 AM–4 PM', n: 'Or: QCon training', lat: HYATT.lat, lon: HYATT.lon, flex: true, range: 800, d: 'Workshops on agent SDKs, Claude Code and Codex, and developer productivity. Skip Alcatraz if you\'re enrolled.' },
+      { via: 'walk', t: '6–10 PM', n: 'Exploratorium After Dark: Glow', lat: 37.8017, lon: -122.3973, must: true, range: 600, d: 'Adults-only night at the science museum on Pier 15, with interactive exhibits and art made with light. Reserve ahead.' },
     ] },
   { id: 'fri', dw: 'FRI', dn: 20, tag: 'Wrap',
     title: 'Closing out the trip', eyebrow: 'Friday · Flexible · Check the flight',
     sub: 'Training or a free city day, then two hours on the Bay at dusk.',
     stops: [
       { t: '9 AM–4 PM', n: 'Training or a free day', lat: HYATT.lat, lon: HYATT.lon, flex: true, range: 900, d: 'Friday workshop if enrolled. Otherwise the waterfront, the Cable Car Museum, or anything you missed.' },
-      { t: '5:30 PM', n: 'City Lights Cruise', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
+      { via: 'streetcar', t: '5:30 PM', n: 'City Lights Cruise', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
     ] },
 ];
 DAYS.forEach((d, di) => {
@@ -181,6 +184,7 @@ function nearbyFor(stop) {
 
 /* ───────────────────────── City pack ───────────────────────── */
 let CITY = null;
+let WEATHER = null;
 let DEM = null;
 function u2ll(x, z) { const o = CITY.origin; return [o.lon0 + x / o.kx, o.lat0 - z / o.ky]; }
 function demHeight(lon, lat) {
@@ -213,14 +217,14 @@ async function boot() {
     skyAtmosphere: new C.SkyAtmosphere(),
     scene3DOnly: true,
     creditContainer: credits,
-    msaaSamples: 4,
+    msaaSamples: LOW ? 1 : 4,
   });
   scene = widget.scene; camera = scene.camera;
   scene.globe.baseColor = C.Color.fromCssColorString('#b9c8d1');
   scene.globe.showGroundAtmosphere = false;
   scene.globe.enableLighting = false;
   scene.globe.depthTestAgainstTerrain = false;
-  scene.globe.maximumScreenSpaceError = 1.5;
+  scene.globe.maximumScreenSpaceError = LOW ? 2.2 : 1.5;
   scene.highDynamicRange = false;
   scene.fog.enabled = true; scene.fog.density = 0.00012;
   scene.sun.show = false; scene.moon.show = false;
@@ -240,6 +244,10 @@ async function boot() {
   camera.setView({ destination: C.Cartesian3.fromDegrees(-101, 30, 9.5e6) });
   drawFlight();
 
+  const side = await Promise.allSettled([fetch('data/routes.json').then((r) => r.ok ? r.json() : {}), fetch('data/weather.json').then((r) => r.ok ? r.json() : null)]);
+  ROUTES = (side[0].status === 'fulfilled' && side[0].value) || {};
+  WEATHER = side[1].status === 'fulfilled' ? side[1].value : null;
+  renderDay();
   const res = await fetch('data/city.json');
   if (!res.ok) throw new Error(`city data ${res.status}`);
   CITY = await res.json();
@@ -463,12 +471,11 @@ function buildBuildings() {
     }));
   };
   // Build and show city blocks lazily, only near the camera.
-  const NEAR = 7500;
   scene.preRender.addEventListener(() => {
     const on = state.layers.buildings && !satellite;
     let built = 0;
     for (const c of live) {
-      const near = on && C.Cartesian3.distance(camera.positionWC, c.center) < NEAR;
+      const near = on && C.Cartesian3.distance(camera.positionWC, c.center) < perf.near;
       if (near && !c.prim && built < 1) { make(c); built++; }
       if (c.prim) c.prim.show = near;
     }
@@ -602,26 +609,66 @@ function drawFlight() {
     material: C.Material.fromType('PolylineGlow', { color: C.Color.fromCssColorString('#ff6a52'), glowPower: 0.25, taperPower: 1 }) });
   prims.flight = scene.primitives.add(pc);
 }
+let ROUTES = {};
+function legFrom(st, i) {
+  // the previous real stop, skipping an "or" alternative
+  let j = i - 1;
+  while (j >= 0 && st[j].via === 'none') j--;
+  return j >= 0 ? st[j] : null;
+}
+function routeFor(b) { return ROUTES[b.id] || null; }
+function legLabel(r) {
+  if (!r) return '';
+  const mode = { walk: 'walk', drive: 'drive', streetcar: 'by streetcar or car' }[r.mode] || r.mode;
+  const mi = r.km / 1.609;
+  return `${Math.max(1, Math.round(r.min))} min ${mode} · ${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi`;
+}
 function drawDayRoute(day) {
-  if (prims.route) scene.primitives.remove(prims.route);
+  if (prims.route) { scene.primitives.remove(prims.route); prims.route = null; }
+  for (const k of ['routeWalk', 'routeDrive']) if (prims[k]) { scene.groundPrimitives.remove(prims[k]); prims[k] = null; }
   const pc = new C.PolylineCollection();
   const st = DAYS[day].stops.filter((s) => !s.leg);
-  const mat = C.Material.fromType('PolylineDash', { color: C.Color.fromCssColorString('#c0362c'), gapColor: C.Color.TRANSPARENT, dashLength: 14 });
+  const orange = C.Color.fromCssColorString('#c0362c');
+  const dash = C.Material.fromType('PolylineDash', { color: orange, gapColor: C.Color.TRANSPARENT, dashLength: 14 });
+  const walk = [], drive = [];
   for (let i = 1; i < st.length; i++) {
-    const a = st[i - 1], b = st[i];
-    if (a.lat === b.lat && a.lon === b.lon) continue;
-    const dm = haversine(a, b);
-    const ha = groundAt(a.lon, a.lat) + 25, hb = groundAt(b.lon, b.lat) + 25;
-    pc.add({ positions: arcPoints(a, b, Math.min(900, dm * 0.12), 48, ha, hb), width: 2.4, material: mat });
+    const b = st[i];
+    if (b.via === 'none') continue;
+    const a = legFrom(st, i);
+    if (!a || (a.lat === b.lat && a.lon === b.lon)) continue;
+    const r = routeFor(b);
+    if (r && r.coords && r.coords.length > 1) {
+      const inst = new C.GeometryInstance({ geometry: new C.GroundPolylineGeometry({ positions: C.Cartesian3.fromDegreesArray(r.coords.flat()), width: r.mode === 'walk' ? 4 : 5 }) });
+      (r.mode === 'walk' ? walk : drive).push(inst);
+    } else {
+      const dm = haversine(a, b);
+      const ha = groundAt(a.lon, a.lat) + 25, hb = groundAt(b.lon, b.lat) + 25;
+      pc.add({ positions: arcPoints(a, b, Math.min(900, dm * 0.12), 48, ha, hb), width: 2.4, material: dash });
+    }
   }
   prims.route = scene.primitives.add(pc);
-  prims.route.show = state.layers.route;
+  const ground = (instances, material) => instances.length ? scene.groundPrimitives.add(new C.GroundPolylinePrimitive({
+    geometryInstances: instances, appearance: new C.PolylineMaterialAppearance({ material }), allowPicking: false })) : null;
+  prims.routeDrive = ground(drive, C.Material.fromType('Color', { color: orange.withAlpha(0.9) }));
+  prims.routeWalk = ground(walk, C.Material.fromType('PolylineDash', { color: orange, gapColor: C.Color.WHITE.withAlpha(0.85), dashLength: 10 }));
+  for (const k of ['route', 'routeWalk', 'routeDrive']) if (prims[k]) prims[k].show = state.layers.route;
 }
 const GEOID_SF = -32.3;
+const satHeights = new Map();
+const hkey = (lon, lat) => `${lon.toFixed(5)},${lat.toFixed(5)}`;
 function groundAt(lon, lat) {
   if (!satellite) return demHeight(lon, lat);
+  const k = satHeights.get(hkey(lon, lat));
+  if (k !== undefined) return k;
   const h = scene.globe.getHeight(C.Cartographic.fromDegrees(lon, lat));
   return h === undefined ? GEOID_SF : h;
+}
+async function sampleSatHeights() {
+  const pts = [...STOPS, ...PLACES];
+  try {
+    const res = await C.sampleTerrainMostDetailed(scene.terrainProvider, pts.map((p) => C.Cartographic.fromDegrees(p.lon, p.lat)));
+    res.forEach((c, i) => { if (Number.isFinite(c.height)) satHeights.set(hkey(pts[i].lon, pts[i].lat), c.height); });
+  } catch (e) { console.warn('terrain sampling failed', e); }
 }
 
 /* ───── Satellite link: Esri imagery + keyless terrain, exactly as God's Eye View
@@ -632,7 +679,11 @@ let satAvailable = false;
 function probeSatellite() {
   const img = new Image();
   let done = false;
-  const finish = (ok) => { if (done) return; done = true; satAvailable = ok; renderLinkChip(); renderLayerPanel(); };
+  const finish = (ok) => {
+    if (done) return; done = true; satAvailable = ok; renderLinkChip(); renderLayerPanel();
+    let pref = null; try { pref = localStorage.getItem('fogcity.sat'); } catch { /* ignore */ }
+    if (ok && pref !== 'off') setSatellite(true);
+  };
   img.onload = () => finish(true);
   img.onerror = () => finish(false);
   setTimeout(() => finish(false), 6000);
@@ -652,13 +703,16 @@ async function setSatellite(on) {
     }
     layers.esri.show = true;
     layers.earth.alpha = 1;
-    try { scene.terrainProvider = await C.CesiumTerrainProvider.fromUrl(REEARTH_TERRAIN); }
+    try { scene.terrainProvider = await C.CesiumTerrainProvider.fromUrl(REEARTH_TERRAIN, { requestVertexNormals: true }); }
     catch { scene.terrainProvider = new C.EllipsoidTerrainProvider(); }
+    scene.globe.enableLighting = true;
+    if (!satHeights.size) await sampleSatHeights();
     const up = C.Cartesian3.normalize(C.Cartesian3.fromDegrees(-122.478, 37.818), new C.Cartesian3());
     const shift = C.Matrix4.fromTranslation(C.Cartesian3.multiplyByScalar(up, GEOID_SF, new C.Cartesian3()));
     prims.bridge.modelMatrix = shift; prims.cables.modelMatrix = shift;
   } else {
     if (layers.esri) layers.esri.show = false;
+    scene.globe.enableLighting = false;
     scene.terrainProvider = makeDemTerrain();
     prims.bridge.modelMatrix = C.Matrix4.IDENTITY; prims.cables.modelMatrix = C.Matrix4.IDENTITY;
   }
@@ -667,6 +721,7 @@ async function setSatellite(on) {
   drawDayRoute(state.day);
   applyLayerVisibility();
   renderLinkChip();
+  renderLayerPanel();
 }
 function renderLinkChip() {
   const chip = $('#link');
@@ -732,6 +787,7 @@ const scratch = new C.Cartesian3();
 const win = new C.Cartesian2();
 let occluder = null;
 function pinVisible(p) {
+  if (p.type === 'me') return true;
   if (p.type === 'stop') return p.ref.day === state.day || (state.layers.route && camera.positionCartographic.height < 6000);
   if (p.type === 'hood') return state.layers.hoods;
   const k = p.ref.kind;
@@ -747,7 +803,7 @@ function updateOverlay() {
   const taken = [];
   const order = pins.slice().sort((a, b) => prio(b) - prio(a));
   for (const p of order) {
-    const show = pinVisible(p) && camH < (p.type === 'stop' ? 4e6 : p.type === 'hood' ? 16000 : 26000);
+    const show = pinVisible(p) && camH < (p.type === 'stop' || p.type === 'me' ? 4e6 : p.type === 'hood' ? 16000 : 26000);
     if (!show) { if (!p.hidden) { p.node.style.display = 'none'; p.hidden = true; } continue; }
     if (p.h === null) p.h = groundAt(p.lon, p.lat) + (p.type === 'hood' ? 40 : 8);
     C.Cartesian3.fromDegrees(p.lon, p.lat, p.h, C.Ellipsoid.WGS84, scratch);
@@ -801,6 +857,32 @@ function updateHud() {
   $('#rAlt').textContent = alt > 10000 ? `${(alt / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} km` : `${Math.round(alt).toLocaleString('en-US')} m`;
   $('#rHdg').textContent = `${String(Math.round(C.Math.toDegrees(camera.heading)) % 360).padStart(3, '0')}°`;
 }
+function startMin(t) {
+  if (/All day/.test(t)) return 540;
+  const m = t.match(/(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return null;
+  const ap = (t.match(/AM|PM/) || [''])[0];
+  let h = +m[1] % 12; if (ap === 'PM' && !(t.indexOf('AM') > -1 && t.indexOf('AM') < t.indexOf('PM'))) h += 12;
+  if (/^\d{1,2}(:\d{2})?–\d/.test(t) && /PM$/.test(t) && +m[1] < 12 && +m[1] >= 6 && !/AM/.test(t)) h = (+m[1] % 12) + 12;
+  return h * 60 + (+m[2] || 0);
+}
+function sfNow() {
+  const d = new Date(Date.now() - 8 * 3600000);
+  return { day: Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - Date.UTC(2026, 10, 14)) / 86400000), min: d.getUTCHours() * 60 + d.getUTCMinutes() };
+}
+let fieldShown = '';
+function updateField() {
+  const { day, min } = sfNow();
+  if (day < 0 || day > 6) return null;
+  const st = DAYS[day].stops.filter((s) => !s.leg && s.via !== 'none' && startMin(s.t) !== null);
+  const next = st.find((s) => startMin(s.t) >= min - 20) || null;
+  if (!next) { setNow(`${DAYS[day].dw} · DONE FOR TODAY`, 'Rest up. Tomorrow: ' + (DAYS[day + 1] ? DAYS[day + 1].title : 'home')); return { day, next: null }; }
+  const dt = startMin(next.t) - min;
+  const when = dt <= 0 ? 'NOW' : dt < 60 ? `IN ${dt} MIN` : `IN ${Math.floor(dt / 60)}H ${String(dt % 60).padStart(2, '0')}M`;
+  const key = `NEXT · ${next.t} · ${when}`;
+  if (key !== fieldShown) { fieldShown = key; setNow(key, next.n); }
+  return { day, next };
+}
 function updateClock() {
   const now = new Date();
   const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -815,6 +897,7 @@ function updateClock() {
     txt = day <= 7 ? `IN THE FIELD · DAY ${day} OF 7` : 'OPERATION COMPLETE';
   }
   $('#countdown').textContent = txt;
+  if (state.field) updateField();
 }
 
 /* ───────────────────────── Camera ───────────────────────── */
@@ -932,6 +1015,17 @@ function renderDay() {
     el('span', { text: `SUNSET ${hm(st.set)}` }),
     el('span', { text: `${d.stops.filter((s) => !s.leg).length} STOPS` }),
   );
+  const fc = $('#dayFc');
+  const w = WEATHER && WEATHER.days && WEATHER.days[`2026-11-${d.dn}`];
+  if (w) {
+    fc.replaceChildren(el('b', { text: `${w.hi ?? '–'}° / ${w.lo ?? '–'}°F` }), ` ${w.short}`,
+      w.pop != null ? ` · ${w.pop}% rain` : '', w.wind ? ` · wind ${w.wind}` : '',
+      el('span', { class: 'fcsrc', text: ` NWS forecast, updated ${new Date(WEATHER.updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` }));
+    fc.hidden = false;
+  } else {
+    fc.replaceChildren(el('b', { text: 'Forecast' }), ' The National Weather Service posts it about 7 days out, so this fills in around Nov 7.');
+    fc.hidden = false;
+  }
   renderTimeline();
   renderPicks();
 }
@@ -939,11 +1033,27 @@ function renderDay() {
 function renderTimeline() {
   const d = DAYS[state.day];
   const list = $('#timeline');
-  list.replaceChildren(...d.stops.map((s) => {
+  const real = d.stops.filter((x) => !x.leg);
+  const nextReal = (i) => d.stops.slice(i + 1).find((x) => !x.leg);
+  const rows = [];
+  d.stops.forEach((s, i) => {
     if (s.leg) {
-      return el('li', { class: 'stop leg' }, el('button', { disabled: true, tabindex: '-1' }, [
-        el('span', { class: 't', text: s.t }), el('span', { class: 'nm', text: s.n })]));
+      const nx = nextReal(i), r = nx && routeFor(nx);
+      rows.push(el('li', { class: 'stop leg' }, el('button', { disabled: true, tabindex: '-1' }, [
+        el('span', { class: 't', text: s.t }), el('span', { class: 'nm' }, [s.n, r ? el('span', { class: 'legmeta', text: legLabel(r) }) : null])])));
+      return;
     }
+    const prevRow = d.stops[i - 1];
+    const r = routeFor(s);
+    if (r && !(prevRow && prevRow.leg) && real.indexOf(s) > 0) {
+      rows.push(el('li', { class: 'via', 'aria-hidden': 'true' }, [el('span', { class: `vm ${r.mode}` }), legLabel(r)]));
+    }
+    rows.push(stopRow(s));
+  });
+  list.replaceChildren(...rows);
+}
+function stopRow(s) {
+  {
     const sel = state.stop === s.id;
     const li = el('li', { class: `stop${sel ? ' sel' : ''}`, id: `stop-${s.id}` });
     li.append(el('button', { 'aria-expanded': String(sel), onclick: () => selectStop(s.day, s.idx) }, [
@@ -968,7 +1078,7 @@ function renderTimeline() {
       }
     }
     return li;
-  }));
+  }
 }
 
 function renderFilters() {
@@ -1009,7 +1119,7 @@ function renderLayerPanel() {
   ]));
   if (satAvailable) {
     rows.push(el('label', {}, [
-      el('input', { type: 'checkbox', id: 'layer-sat', checked: satellite, onchange: (e) => setSatellite(e.target.checked) }),
+      el('input', { type: 'checkbox', id: 'layer-sat', checked: satellite, onchange: (e) => { try { localStorage.setItem('fogcity.sat', e.target.checked ? 'on' : 'off'); } catch { /* ignore */ } setSatellite(e.target.checked); } }),
       'Satellite imagery',
     ]));
   }
@@ -1017,7 +1127,7 @@ function renderLayerPanel() {
 }
 function saveLayers() { try { localStorage.setItem('fogcity.layers', JSON.stringify(state.layers)); } catch { /* ignore */ } }
 function applyLayerVisibility() {
-  if (prims.route) prims.route.show = state.layers.route;
+  for (const k of ['route', 'routeWalk', 'routeDrive']) if (prims[k]) prims[k].show = state.layers.route;
   if (prims.hoods) prims.hoods.show = state.layers.hoods && !satellite;
   if (prims.tall) prims.tall.show = state.layers.buildings && !satellite;
   if (scene && CITY && !!fogStage !== !!state.layers.fog) setFog(state.layers.fog);
@@ -1077,6 +1187,16 @@ function openPlace(p) {
       duration: REDUCED ? 0 : 2,
     });
   }
+}
+let mePin = null;
+function showMe(me) {
+  if (!mePin) {
+    const n = el('div', { class: 'pin me', 'aria-label': 'You are here' }, [el('span', { class: 'mk' })]);
+    labelsEl.append(n);
+    mePin = { type: 'me', node: n, lat: me.lat, lon: me.lon, h: null, w: 0 };
+    pins.push(mePin);
+  }
+  Object.assign(mePin, { lat: me.lat, lon: me.lon, h: null });
 }
 function closeCard() { state.place = null; $('#card').hidden = true; }
 
@@ -1255,8 +1375,10 @@ void main(){
   if (cam.z > 6000.0 && dir.z > -0.01) { out_FragColor = base; return; }
   float t0 = 0.0, t1 = dist;
   if (cam.z > 480.0) { if (dir.z >= 0.0) { out_FragColor = base; return; } t0 = (cam.z - 480.0) / -dir.z; }
+  if (dir.z < -1e-4) t1 = min(t1, (cam.z + 5.0) / -dir.z);  // never march below sea level
+  t1 = min(t1, 25000.0);
   if (t0 >= t1) { out_FragColor = base; return; }
-  const int N = 20;
+  const int N = __STEPS__;
   float ds = (t1 - t0) / float(N);
   float j = hash(gl_FragCoord.xy);
   float T = 1.0; vec3 acc = vec3(0.0);
@@ -1278,7 +1400,7 @@ function setFog(on) {
   if (on) {
     const o = CITY.origin;
     const w2l = C.Matrix4.inverseTransformation(C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(o.lon0, o.lat0, 0)), new C.Matrix4());
-    fogStage = scene.postProcessStages.add(new C.PostProcessStage({ fragmentShader: FOG_FS, uniforms: { time: () => (performance.now() - t0) / 1000, w2l } }));
+    fogStage = scene.postProcessStages.add(new C.PostProcessStage({ fragmentShader: FOG_FS.replace('__STEPS__', String(perf.fogSteps)), uniforms: { time: () => (performance.now() - t0) / 1000, w2l } }));
   }
   setSensor(state.sensor); // keep the sensor look last in the chain
 }
@@ -1307,6 +1429,23 @@ function initUi() {
     startOrbit(hit, range, C.Math.toDegrees(camera.pitch), 5);
   });
   $('#cardX').addEventListener('click', closeCard);
+  const loc = $('#btnLocate');
+  if (!IN_CLAUDE && navigator.geolocation) {
+    loc.hidden = false;
+    loc.addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const me = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        showMe(me);
+        const far = haversine(me, HOTEL);
+        if (far > 80000) { setNow('YOUR LOCATION', `${Math.round(far / 1609).toLocaleString('en-US')} MI FROM THE HOTEL`); return; }
+        stopAll();
+        camera.flyToBoundingSphere(new C.BoundingSphere(C.Cartesian3.fromDegrees(me.lon, me.lat, groundAt(me.lon, me.lat)), 1),
+          { offset: new C.HeadingPitchRange(camera.heading, C.Math.toRadians(-45), 900), duration: REDUCED ? 0 : 2 });
+        const near = STOPS.filter((s) => s.day === state.day).map((s) => ({ s, m: haversine(me, s) })).sort((a, b) => a.m - b.m)[0];
+        setNow('YOU ARE HERE', near ? `${distLabel(near.m)} to ${near.s.n}` : 'SAN FRANCISCO');
+      }, () => setNow('LOCATION', 'NOT AVAILABLE'), { enableHighAccuracy: true, timeout: 10000 });
+    });
+  }
   window.addEventListener('hashchange', () => {
     const i = DAYS.findIndex((d) => `#${d.id}` === location.hash);
     if (i >= 0 && i !== state.day) selectDay(i);
@@ -1330,8 +1469,33 @@ boot().then(() => {
   ['pointerdown', 'wheel'].forEach((ev) => g.addEventListener(ev, () => { stopOrbit(); tour.cancel(); }, { passive: true }));
   let hudT = 0;
   scene.postRender.addEventListener(() => { const n = performance.now(); if (n - hudT > 180) { hudT = n; updateHud(); } });
+  // Step quality down if frames run slow (phones, older laptops).
+  let frames = 0, slow = 0, last = performance.now();
+  scene.postRender.addEventListener(() => {
+    const n = performance.now(), dt = n - last; last = n;
+    if (dt > 400 || document.hidden) return;
+    frames++; if (dt > 42) slow++;
+    if (frames < 150) return;
+    const bad = slow / frames > 0.6; frames = 0; slow = 0;
+    if (!bad || perf.level >= 3) return;
+    perf.level++;
+    if (perf.level === 1) { perf.fogSteps = 8; if (fogStage) setFog(true); }
+    if (perf.level === 2) { perf.near = 3200; scene.globe.maximumScreenSpaceError = 3; }
+    if (perf.level === 3) { widget.resolutionScale = 0.75; }
+    console.info('quality step down', perf.level);
+  });
   $('#boot').remove();
   const go = () => {
+    const f = sfNow();
+    if (f.day >= 0 && f.day <= 6 && !location.hash) {
+      state.field = true;
+      selectDay(f.day, { fly: false });
+      const r = updateField();
+      if (r && r.next) selectStop(r.next.day, r.next.idx); else flyToDay(f.day);
+      fieldShown = '';
+      updateField();
+      return;
+    }
     if (state.stop) { const [d, i] = state.stop.split('-'); flyToStop(DAYS.find((x) => x.id === d).stops[+i]); }
     else if (location.hash) selectDay(state.day);
     else flyHome(4.5);
