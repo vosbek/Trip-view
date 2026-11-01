@@ -26,4 +26,5 @@ const { chromium } = require('playwright');
   require('fs').writeFileSync(`${out}/log.txt`, log.join('\n') + '\n');
   console.log(log.join('\n'));
   await b.close();
+  if (log.some((l) => l.includes('PAGEERROR'))) { console.error('page errors found'); process.exit(1); }
 })();
