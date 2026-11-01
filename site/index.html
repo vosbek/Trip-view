@@ -1,0 +1,3517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Operation Fog City</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Matt and Val's San Francisco week, Nov 14–20, 2026, on a 3D globe built from the open-source God's Eye View.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a full-bleed globe on the left, a paper "field dossier" on the right
+   (below the globe on phones). The map is the instrument; the dossier is the plan. */
+:root {
+  --paper: #f7f8f7;
+  --paper-2: #eef0ef;
+  --ink: #12171b;
+  --ink-2: #4d5862;
+  --ink-3: #7c8791;
+  --rule: #d9dee1;
+  --gg: #c0362c;            /* International Orange, the bridge's own paint */
+  --gg-soft: #f6e3e0;
+  --fog: #6f8190;
+  --eat: #12171b;
+  --coffee: #8a5a33;
+  --drink: #6b4fa0;
+  --gem: #16708c;
+  --glass: rgba(247, 248, 247, 0.86);
+  --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --dossier-w: 432px;
+  color-scheme: light;
+}
+/* The trip page is a deliberate light document (the map is a light schematic),
+   so it keeps one palette in both themes. */
+html, body { height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper);
+}
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--gg); outline-offset: 2px; }
+
+#app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--dossier-w);
+  height: 100%;
+}
+
+/* ───────── Stage (globe + HUD) ───────── */
+#stage { position: relative; overflow: hidden; background: #b9c8d1; min-width: 0; }
+#globe { position: absolute; inset: 0; }
+#globe canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.cesium-widget, .cesium-widget canvas { width: 100%; height: 100%; }
+.cesium-widget-credits { display: none !important; }
+#credits {
+  position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 6px;
+  font: 400 10px/1.3 var(--f-body); color: var(--ink-2); z-index: 4;
+  max-width: 60%;
+}
+#credits a { color: var(--ink-2); }
+#credits img { height: 14px; vertical-align: middle; }
+#credits .cesium-credit-lightbox-overlay, #credits .cesium-credit-expand-link { display: none; }
+#credits * { display: inline; }
+
+#labels { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+
+.hud {
+  position: absolute; z-index: 5;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+  border: 1px solid rgba(18, 23, 27, 0.08);
+  border-radius: 4px;
+}
+.hud-tl {
+  top: 12px; left: max(12px, env(safe-area-inset-left, 0px));
+  padding: 10px 12px 9px;
+}
+.brand {
+  font-family: var(--f-display); font-stretch: 125%; font-weight: 800;
+  font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.brand i {
+  width: 9px; height: 9px; background: var(--gg); display: inline-block;
+  box-shadow: 0 0 0 3px var(--gg-soft);
+}
+.readout {
+  margin-top: 7px;
+  font: 500 10.5px/1.6 var(--f-mono); color: var(--ink-2);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+  display: grid; grid-template-columns: auto auto; column-gap: 10px;
+}
+.readout b { font-weight: 500; color: var(--ink-3); }
+.hud-tr {
+  top: 12px; right: 12px; padding: 9px 12px; text-align: right;
+  font: 500 10.5px/1.6 var(--f-mono); color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.hud-tr .big { font-size: 12px; color: var(--ink); font-weight: 600; }
+.chip {
+  display: inline-block; margin-top: 5px; padding: 2px 6px;
+  font: 600 9.5px/1.5 var(--f-mono); letter-spacing: 0.08em;
+  border: 1px solid var(--ink); border-radius: 2px; color: var(--ink);
+}
+.chip.live { background: var(--ink); color: var(--paper); }
+
+#now {
+  left: max(12px, env(safe-area-inset-left, 0px)); bottom: 28px; padding: 8px 12px;
+  max-width: min(520px, calc(100% - 24px));
+}
+#now .k { font: 600 9.5px/1.4 var(--f-mono); letter-spacing: 0.12em; color: var(--gg); }
+#nowText {
+  display: block; margin-top: 2px;
+  font: 700 14px/1.3 var(--f-mono); letter-spacing: 0.02em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.sensors {
+  position: absolute; z-index: 5; right: 12px; bottom: 28px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+}
+.seg {
+  position: relative; inset: auto;
+  display: flex; padding: 3px; gap: 2px;
+}
+.seg button {
+  border: 0; background: transparent; cursor: pointer;
+  font: 600 10px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 7px 8px; border-radius: 2px; color: var(--ink-2); white-space: nowrap;
+}
+.seg button:hover { background: rgba(18, 23, 27, 0.06); color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg-label {
+  font: 600 9px/1 var(--f-mono); letter-spacing: 0.14em; color: var(--ink-3);
+  padding: 0 6px 0 4px; align-self: center;
+}
+.camctl { display: flex; gap: 6px; flex: none; }
+.iconbtn {
+  width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
+  border: 1px solid rgba(18, 23, 27, 0.1); border-radius: 4px; background: var(--glass);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font: 600 14px/1 var(--f-mono);
+}
+.iconbtn:hover { border-color: var(--ink); }
+.iconbtn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+/* Pins (DOM overlay, positioned every frame) */
+.pin {
+  position: absolute; left: 0; top: 0; pointer-events: auto;
+  border: 0; background: none; padding: 0; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  will-change: transform;
+}
+.pin .mk { flex: none; display: block; }
+.pin .lb {
+  font: 600 11px/1 var(--f-body); color: var(--ink); white-space: nowrap;
+  background: rgba(255, 255, 255, 0.92); padding: 4px 6px 4px 5px; border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(18, 23, 27, 0.18);
+}
+.pin.nolabel .lb { display: none; }
+.pin:hover .lb, .pin:focus-visible .lb { display: block; }
+.pin.stop .mk {
+  width: 20px; height: 20px; display: grid; place-items: center;
+  background: var(--gg); color: #fff; font: 700 10.5px/1 var(--f-mono);
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(18, 23, 27, 0.35);
+}
+.pin.stop.muted .mk { background: #fff; color: var(--gg); box-shadow: 0 0 0 1.5px var(--gg); }
+.pin.stop.sel .mk { transform: scale(1.25); }
+.pin.stop.sel .lb { background: var(--ink); color: var(--paper); }
+.pin.place .mk { width: 11px; height: 11px; box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(18, 23, 27, 0.4); }
+.pin.place[data-kind="eat"] .mk { background: var(--eat); border-radius: 50%; }
+.pin.place[data-kind="coffee"] .mk { background: var(--coffee); border-radius: 50%; }
+.pin.place[data-kind="drink"] .mk { background: var(--drink); border-radius: 50%; }
+.pin.place[data-kind="gem"] .mk { background: var(--gem); transform: rotate(45deg) scale(0.9); }
+.pin.place .lb { font-weight: 500; font-size: 10.5px; }
+.pin.place.sel .lb { background: var(--ink); color: var(--paper); }
+.pin.place.sel .mk { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ink); }
+.hood {
+  position: absolute; left: 0; top: 0; white-space: nowrap;
+  font: 700 9.5px/1 var(--f-display); font-stretch: 112%; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(18, 23, 27, 0.48); text-shadow: 0 0 3px #fff, 0 0 2px #fff;
+}
+.sensor-dark .hood { color: rgba(255, 255, 255, 0.7); text-shadow: 0 0 3px #000; }
+
+/* Place card */
+#card {
+  position: absolute; z-index: 6; left: max(12px, env(safe-area-inset-left, 0px)); top: 140px;
+  width: min(330px, calc(100% - 24px));
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(18, 23, 27, 0.16);
+  padding: 14px 16px 14px;
+}
+#card .kind { font: 600 9.5px/1 var(--f-mono); letter-spacing: 0.14em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+#card h3 { margin: 8px 0 6px; font: 700 19px/1.15 var(--f-display); font-stretch: 100%; text-wrap: balance; padding-right: 22px; }
+#card p { margin: 0 0 8px; color: var(--ink-2); font-size: 13px; }
+#card .tip { font-size: 12.5px; color: var(--ink); background: var(--paper-2); padding: 7px 9px; border-radius: 3px; }
+#card .meta { font: 500 10.5px/1.5 var(--f-mono); color: var(--ink-2); margin: 9px 0 10px; }
+#card .links { display: flex; gap: 14px; font: 600 12px/1 var(--f-body); }
+#card .links a { text-decoration: none; border-bottom: 1px solid var(--gg); padding-bottom: 2px; }
+#card .x { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; background: none; cursor: pointer; font: 400 18px/1 var(--f-body); color: var(--ink-2); }
+
+/* ───────── Dossier ───────── */
+#dossier {
+  background: var(--paper); border-left: 1px solid var(--rule);
+  overflow-y: auto; overscroll-behavior: contain; min-width: 0;
+  padding-left: max(22px, env(safe-area-inset-left, 0px));
+  padding-right: max(22px, env(safe-area-inset-right, 0px));
+  padding-block: 22px 28px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.eyebrow { font: 600 10px/1.4 var(--f-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.mast h1 {
+  margin: 6px 0 8px;
+  font-family: var(--f-display); font-weight: 800; font-stretch: 118%;
+  font-size: 34px; line-height: 0.98; letter-spacing: -0.01em; text-transform: uppercase;
+  text-wrap: balance;
+}
+.mast h1 span { color: var(--gg); }
+.mast p { margin: 0; color: var(--ink-2); max-width: 46ch; }
+.mast .facts {
+  margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px 16px;
+  font: 500 11px/1.5 var(--f-mono); color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.mast .facts b { color: var(--ink); font-weight: 600; }
+
+/* Departure-board day strip */
+.board { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.day {
+  border: 0; cursor: pointer; padding: 8px 0 7px; text-align: center;
+  background: var(--paper-2); color: var(--ink); border-radius: 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  position: relative;
+}
+.day .dw { font: 600 9.5px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--ink-3); }
+.day .dn { font: 800 21px/1 var(--f-display); font-stretch: 112%; font-variant-numeric: tabular-nums; }
+.day .dt { font: 500 9px/1 var(--f-mono); color: var(--ink-3); letter-spacing: 0.02em; }
+.day.out .dn { color: var(--gg); }
+.day:hover { background: #e5e8e7; }
+.day[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.day[aria-selected="true"] .dw, .day[aria-selected="true"] .dt { color: #a9b3bb; }
+.day[aria-selected="true"].out .dn { color: #ff8f80; }
+
+.dayhead { display: grid; gap: 6px; }
+.dayhead .title {
+  font: 800 22px/1.1 var(--f-mono); letter-spacing: -0.01em; text-transform: uppercase;
+  min-height: 1.1em;
+}
+.dayhead .sub { color: var(--ink-2); font-size: 13.5px; }
+.dayhead .meta {
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font: 500 10.5px/1.5 var(--f-mono); color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.dayhead .meta span::before { content: "— "; color: var(--ink-3); }
+.dayhead .meta span:first-child::before { content: ""; }
+.actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+  padding: 9px 13px; border-radius: 3px; cursor: pointer;
+  font: 600 12px/1 var(--f-body); display: inline-flex; align-items: center; gap: 8px;
+}
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+.btn.ghost:hover { border-color: var(--ink); }
+.btn svg { width: 12px; height: 12px; fill: currentColor; }
+
+/* Timeline */
+.timeline { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.stop { border-bottom: 1px solid var(--rule); }
+.stop > button {
+  width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+  display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; padding: 12px 4px 12px 0;
+}
+.stop .t { font: 500 10.5px/1.45 var(--f-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.stop .t .n {
+  display: inline-grid; place-items: center; width: 17px; height: 17px; margin-bottom: 5px;
+  background: var(--gg); color: #fff; font: 700 9.5px/1 var(--f-mono);
+}
+.stop .nm { font: 650 15px/1.25 var(--f-display); font-stretch: 104%; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+.stop .nm em { font: 600 9px/1 var(--f-mono); font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gg); white-space: nowrap; }
+.stop .nm em.flex { color: var(--ink-3); }
+.stop .ds { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.stop.sel { background: linear-gradient(90deg, var(--gg-soft), transparent 70%); }
+.stop.sel .ds { -webkit-line-clamp: unset; display: block; color: var(--ink); }
+.stop.leg > button { cursor: default; padding-block: 7px; }
+.stop.leg .nm { font: 500 12px/1.4 var(--f-body); color: var(--ink-3); font-style: italic; }
+.near { padding: 0 6px 14px 86px; display: grid; gap: 2px; }
+.near .h { font: 600 9.5px/1.4 var(--f-mono); letter-spacing: 0.14em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 4px; }
+.near button {
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  background: none; border: 0; padding: 5px 0; cursor: pointer; text-align: left;
+  border-top: 1px dashed var(--rule);
+}
+.near button:hover .pn { text-decoration: underline; text-decoration-color: var(--gg); }
+.near .pn { font-size: 13px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.near .pd { font: 500 10px/1 var(--f-mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.glyph { width: 9px; height: 9px; display: inline-block; flex: none; }
+.glyph.eat { background: var(--eat); border-radius: 50%; }
+.glyph.coffee { background: var(--coffee); border-radius: 50%; }
+.glyph.drink { background: var(--drink); border-radius: 50%; }
+.glyph.gem { background: var(--gem); transform: rotate(45deg) scale(0.85); }
+.glyph.stop { background: var(--gg); }
+
+section h2 {
+  margin: 0 0 10px; font: 700 10px/1.4 var(--f-mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3);
+  display: flex; justify-content: space-between; gap: 10px;
+}
+.layers { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.layers label {
+  display: flex; align-items: center; gap: 9px; padding: 7px 0; cursor: pointer;
+  border-bottom: 1px solid var(--rule); font-size: 13px; min-width: 0;
+}
+.layers input { accent-color: var(--ink); margin: 0; width: 14px; height: 14px; flex: none; }
+.layers .ct { margin-left: auto; font: 500 10px/1 var(--f-mono); color: var(--ink-3); }
+
+.picks { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.picks button {
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: baseline;
+  border: 0; border-bottom: 1px solid var(--rule); background: none; text-align: left; cursor: pointer;
+  padding: 9px 0;
+}
+.picks .pn { font-weight: 600; font-size: 13.5px; }
+.picks .pb { grid-column: 2 / 4; color: var(--ink-2); font-size: 12.5px; margin-top: -4px; }
+.picks .pd { font: 500 10px/1 var(--f-mono); color: var(--ink-3); white-space: nowrap; }
+.picks .glyph { align-self: center; }
+.filters { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.filters button {
+  border: 1px solid var(--rule); background: none; border-radius: 2px; cursor: pointer;
+  font: 600 10px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 8px; color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.filters button[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: var(--paper-2); }
+
+.notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--ink-2); font-size: 13px; }
+.notes li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; }
+.notes b { font: 600 10px/1.6 var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); }
+.foot { font-size: 11.5px; color: var(--ink-3); border-top: 1px solid var(--rule); padding-top: 14px; }
+.foot p { margin: 0 0 6px; }
+.foot a { color: var(--ink-2); }
+
+#boot {
+  position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; pointer-events: none;
+  font: 600 11px/1.5 var(--f-mono); letter-spacing: 0.14em; color: var(--ink-2); text-transform: uppercase;
+}
+#boot.err { pointer-events: auto; background: var(--paper); padding: 24px; text-align: center; letter-spacing: 0.04em; text-transform: none; font-size: 13px; }
+
+
+/* Wishlist + checklist */
+.heart {
+  border: 1px solid var(--rule); background: var(--paper); border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px 6px 9px;
+  font: 600 12px/1 var(--f-body); color: var(--ink);
+}
+.heart svg { width: 14px; height: 14px; fill: none; stroke: var(--gg); stroke-width: 1.8; }
+.heart[aria-pressed="true"] { background: var(--gg); border-color: var(--gg); color: #fff; }
+.heart[aria-pressed="true"] svg { fill: #fff; stroke: #fff; }
+.who { display: inline-flex; align-items: center; gap: 4px; font: 500 11px/1.3 var(--f-body); color: var(--ink-2); }
+.who img { width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--paper); }
+.who img + img { margin-left: -8px; }
+#card .social { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 2px; }
+.loveflag { color: var(--gg); font: 600 10px/1 var(--f-mono); white-space: nowrap; }
+.pin.place.loved .mk { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--gg); }
+.wish { display: grid; border-top: 1px solid var(--rule); }
+.wish button {
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  border: 0; border-bottom: 1px solid var(--rule); background: none; text-align: left; cursor: pointer; padding: 9px 0;
+}
+.wish .pn { font-weight: 600; font-size: 13.5px; min-width: 0; }
+.wish .pd { font: 500 10px/1.3 var(--f-mono); color: var(--ink-3); display: block; font-weight: 500; margin-top: 2px; }
+.empty { color: var(--ink-3); font-size: 13px; margin: 0; padding: 10px 0; border-top: 1px solid var(--rule); }
+.checks { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.checks li { border-bottom: 1px solid var(--rule); }
+.checks label { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; cursor: pointer; }
+.checks input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--gg); }
+.checks .ct { font-weight: 600; font-size: 13.5px; }
+.checks .cs { display: block; color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.checks input:checked ~ span .ct { text-decoration: line-through; text-decoration-color: var(--gg); color: var(--ink-3); }
+.checks a { font: 600 11px/1 var(--f-body); white-space: nowrap; text-decoration: none; border-bottom: 1px solid var(--gg); padding-bottom: 1px; margin-top: 3px; }
+.sharenote { font-size: 12px; color: var(--ink-3); margin: 8px 0 0; }
+.progress { font: 600 10px/1.4 var(--f-mono); color: var(--ink-3); letter-spacing: 0.1em; }
+/* Photos */
+.photo { position: relative; margin: -14px -16px 12px; background: var(--paper-2); aspect-ratio: 16 / 9; overflow: hidden; border-radius: 4px 4px 0 0; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo figcaption { position: absolute; right: 6px; bottom: 5px; font: 400 9px/1.2 var(--f-body); color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.8); max-width: 90%; text-align: right; }
+.photo figcaption a { color: #fff; }
+.stopphoto { margin: 10px 0 2px; aspect-ratio: 16 / 9; overflow: hidden; background: var(--paper-2); border-radius: 3px; position: relative; }
+.stopphoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.stopphoto figcaption { position: absolute; right: 6px; bottom: 5px; font: 400 9px/1.2 var(--f-body); color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.85); }
+.stopphoto figcaption a { color: #fff; }
+.thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 3px; grid-row: span 2; }
+
+/* split-flap (from God's Eye View, src/ui/styles/status.css) */
+.gev-flap-host.gev-flap-active > .gev-flap-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* Permanent sibling: empty (and so zero-width) whenever no cascade is running. */
+.gev-flap-cells {
+  white-space: pre;
+}
+.gev-flap-cell {
+  display: inline-block;
+  /* Chip labels carry real spaces; a collapsed space would drop a column. */
+  white-space: pre;
+}
+/* The incoming glyph is in flow, so it — not any text node — is what gives
+   the column its natural width. EVERY column has one, including a column the
+   new string does not reach: that one carries a blank, so it holds its width
+   and its index for the whole cascade instead of collapsing. Collapsing would
+   stack the absolutely-positioned outgoing glyphs on one x and would let a
+   later glyph slide into an earlier column. */
+.gev-flap-cell::after {
+  content: attr(data-flap-next);
+  display: inline-block;
+  white-space: pre;
+}
+.gev-flap-cell.is-flapping {
+  position: relative;
+  /* Relative to the chip's own font size, so the foreshortening reads the
+     same on the 8px status chips as it would anywhere else. */
+  perspective: 4em;
+}
+.gev-flap-cell.is-flapping::before,
+.gev-flap-cell.is-flapping::after {
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+.gev-flap-cell.is-flapping::after {
+  animation: gev-flap-in var(--gev-flap-dur, 190ms)
+    cubic-bezier(0.2, 0.75, 0.25, 1) var(--gev-flap-delay, 0ms) both;
+}
+/* Out of flow, so the outgoing glyph overlays its own column without
+   affecting layout — one per column, each anchored to its own cell box. */
+.gev-flap-cell.is-flapping::before {
+  content: attr(data-flap-prev);
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: pre;
+  animation: gev-flap-out var(--gev-flap-dur, 190ms)
+    cubic-bezier(0.2, 0.75, 0.25, 1) var(--gev-flap-delay, 0ms) both;
+}
+/* Length changes are eased, never snapped. A GROWING label reserves its new
+   columns the moment the cells go in, so splitFlap.js eases from the previous
+   on-screen width to the cascade width at the start. A SHRINKING one holds
+   every column for the whole cascade, so its ease runs at SETTLEMENT instead,
+   from the cascade width down to the natural width — one smooth transition
+   after the flaps have landed, rather than columns collapsing underneath
+   them. */
+.gev-flap-sizing {
+  display: inline-block;
+  transition: width var(--gev-flap-total, 500ms)
+    cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+/* The old leaf hinges down and away on the cell's midline. */
+@keyframes gev-flap-out {
+  0% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  48% {
+    transform: rotateX(-88deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+}
+/* The new leaf waits for the old one to clear, then drops in and settles
+   with a single small overshoot — the mechanical clack. */
+@keyframes gev-flap-in {
+  0% {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  46% {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  78% {
+    transform: rotateX(-7deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+/* Matches the .cockpit-roll-track treatment: collapse the duration rather
+   than dropping the animation, so the final frame still lands the glyph.
+   src/splitFlap.js also checks the query and takes the instant path, so
+   this is the belt to that braces. */
+@media (prefers-reduced-motion: reduce) {
+  .gev-flap-cell.is-flapping::before,
+  .gev-flap-cell.is-flapping::after {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .gev-flap-sizing {
+    transition-duration: 1ms;
+  }
+}
+
+
+@media (max-width: 860px) {
+  #app { display: block; height: auto; }
+  html, body { height: auto; }
+  #stage {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 8;
+    height: 52svh; min-height: 300px; border-bottom: 1px solid var(--rule);
+  }
+  #dossier { border-left: 0; overflow: visible; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .hud-tl { padding: 7px 9px; }
+  .readout { display: none; }
+  .hud-tr { padding: 6px 9px; font-size: 10px; }
+  .hud-tr .sfclock { display: none; }
+  #now { bottom: 64px; }
+  .sensors { left: max(8px, env(safe-area-inset-left, 0px)); right: 8px; bottom: 22px; flex-direction: row; align-items: center; justify-content: space-between; }
+  .sensors .seg { overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 0 1 auto; }
+  .sensors .camctl { order: 2; }
+  .stop { scroll-margin-top: calc(52svh + 12px); }
+  .seg-label { display: none; }
+  #card { top: auto; bottom: 64px; }
+  #credits { bottom: 2px; font-size: 9px; max-width: 70%; }
+  .mast h1 { font-size: 30px; }
+}
+@media (max-width: 560px) {
+  .hud-tl { display: none; }
+  .hud-tr { left: max(12px, env(safe-area-inset-left, 0px)); right: auto; text-align: left; }
+}
+@media (max-width: 420px) {
+  .stop > button { grid-template-columns: 62px minmax(0, 1fr); gap: 10px; }
+  .near { padding-left: 72px; }
+  .notes li { grid-template-columns: 62px minmax(0, 1fr); }
+  .layers { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="globe" aria-label="3D map of San Francisco"></div>
+    <div id="labels"></div>
+    <div id="boot">Acquiring satellite…</div>
+
+    <div class="hud hud-tl">
+      <div class="brand"><i aria-hidden="true"></i>Operation Fog City</div>
+      <div class="readout" aria-live="off">
+        <b>LAT</b><span id="rLat">—</span>
+        <b>LON</b><span id="rLon">—</span>
+        <b>MGRS</b><span id="rMgrs">—</span>
+        <b>ALT</b><span id="rAlt">—</span>
+        <b>HDG</b><span id="rHdg">—</span>
+      </div>
+    </div>
+
+    <div class="hud hud-tr">
+      <div class="big" id="countdown">—</div>
+      <div class="sfclock" id="sfclock">—</div>
+      <span class="chip" id="link" role="status">SCHEMATIC</span>
+    </div>
+
+    <div class="hud" id="now" aria-live="polite">
+      <div class="k" id="nowKey">NOW SHOWING</div>
+      <span id="nowText">SAN FRANCISCO</span>
+    </div>
+
+    <div class="sensors">
+      <div class="camctl">
+        <button class="iconbtn" id="btnHome" title="Whole trip view" aria-label="Whole trip view"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg></button>
+        <button class="iconbtn" id="btnOrbit" title="Orbit around the view" aria-label="Orbit" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M12.4 1.6v2.8H9.6"/></svg></button>
+      </div>
+      <div class="hud seg" role="group" aria-label="Sensor look" id="sensorSeg">
+        <span class="seg-label">SENSOR</span>
+      </div>
+    </div>
+
+    <article id="card" hidden aria-live="polite">
+      <figure class="photo" id="cardPhoto" hidden><img id="cardImg" alt=""><figcaption id="cardCredit"></figcaption></figure>
+      <button class="x" id="cardX" aria-label="Close">×</button>
+      <div class="kind" id="cardKind"></div>
+      <h3 id="cardName"></h3>
+      <p id="cardBlurb"></p>
+      <div class="tip" id="cardTip"></div>
+      <div class="meta" id="cardMeta"></div>
+      <div class="social"><button class="heart" id="cardHeart" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M8 14s-5.5-3.4-5.5-7.3A3 3 0 0 1 8 4.6a3 3 0 0 1 5.5 2.1C13.5 10.6 8 14 8 14z"/></svg><span>Want to go</span></button><span class="who" id="cardWho"></span></div>
+      <div class="links" id="cardLinks"></div>
+    </article>
+
+    <div id="credits"></div>
+  </div>
+
+  <aside id="dossier" aria-label="Trip dossier">
+    <header class="mast">
+      <div class="eyebrow">Field dossier · San Francisco · 37°48′N 122°25′W</div>
+      <h1>Operation <span>Fog</span> City</h1>
+      <p>Matt &amp; Val's week in San Francisco. Pick a day, then a stop, and the satellite flies you there. The dots around each stop are food and odd little places worth a detour. Heart the ones you want and they land on our shared wishlist.</p>
+      <div class="facts">
+        <span><b>NOV 14–20</b> 2026</span>
+        <span>BASE <b>KIMPTON ALTON</b></span>
+        <span>SFO <b>9:30 AM</b> SAT</span>
+      </div>
+    </header>
+
+    <nav class="board" role="tablist" aria-label="Days" id="board"></nav>
+
+    <section class="dayhead" aria-live="polite">
+      <div class="eyebrow" id="dayEyebrow"></div>
+      <div class="title" id="dayTitle">—</div>
+      <div class="sub" id="daySub"></div>
+      <div class="meta" id="dayMeta"></div>
+      <div class="actions">
+        <button class="btn" id="btnPlay"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg><span>Fly the day</span></button>
+        <button class="btn ghost" id="btnDay">Show the whole day</button>
+      </div>
+    </section>
+
+    <ol class="timeline" id="timeline"></ol>
+
+    <section>
+      <h2><span>Worth a detour</span><span id="pickCount"></span></h2>
+      <div class="filters" id="filters"></div>
+      <div class="picks" id="picks"></div>
+    </section>
+
+    <section id="wishSec">
+      <h2><span>Our wishlist</span><span id="wishCount"></span></h2>
+      <div class="wish" id="wish"></div>
+      <p class="sharenote" id="wishNote"></p>
+    </section>
+
+    <section>
+      <h2><span>Before we go</span><span class="progress" id="checkProg"></span></h2>
+      <ul class="checks" id="checks"></ul>
+    </section>
+
+    <section>
+      <h2><span>Map layers</span></h2>
+      <div class="layers" id="layers"></div>
+    </section>
+
+    <section>
+      <h2><span>Field notes</span></h2>
+      <ul class="notes">
+        <li><b>Weather</b><span>November runs cool, wet and windy. Bring a windproof layer and shoes with grip for Lands End's stairs.</span></li>
+        <li><b>Daylight</b><span>Sunset is just before 5 PM all week. Plan the coast and the redwoods for the morning and early afternoon.</span></li>
+        <li><b>Muir Woods</b><span>Parking reservation required, and there's no cell signal. Download the receipt and trail map before you go.</span></li>
+        <li><b>Rental car</b><span>Avis, 500 Beach St. Nothing visible in the car at overlooks. The southbound bridge toll gets billed through the rental.</span></li>
+        <li><b>Book now</b><span>Muir Woods parking, the rental car, Exploratorium After Dark (Thu), the City Lights Cruise (Fri). Alcatraz reopening on the 19th isn't guaranteed.</span></li>
+      </ul>
+    </section>
+
+    <footer class="foot">
+      <p>Built on <a href="https://github.com/bilawalsidhu/gods-eye-view" target="_blank" rel="noopener">God's Eye View</a> by Bilawal Sidhu (MIT): the Cesium globe setup, sensor shaders, split-flap board, sky and SF neighborhood outlines come from it.</p>
+      <p>Schematic city: OpenStreetMap contributors (ODbL) via <a href="https://github.com/hausfath/sf-train-set" target="_blank" rel="noopener">sf-train-set</a>, SRTM elevation, US Census county outlines, DataSF neighborhoods, Natural Earth. Satellite view: Esri World Imagery and Re:Earth terrain, when the page can reach them.</p>
+      <p>Hours and closures were checked on Nov 1, 2026. Lines between stops show order, not the road route.</p>
+    </footer>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mgrs@2.1.0/dist/mgrs.min.js"></script>
+<script>window.CESIUM_BASE_URL = new URL('cesium/', location.href).href;</script>
+<script src="cesium/Cesium.js"></script>
+<script>
+/**
+ * Split-flap (departure-board) text animation for the status chips.
+ *
+ * When a chip's label changes — "LOADING LIVE DATA" → "LOAD COMPLETE",
+ * "loading frames" → "camera grid ready" — the characters flip over
+ * mechanically, left to right, like a Solari board at a ferry terminal.
+ *
+ * FOUR INVARIANTS HOLD THIS TOGETHER — do not "fix" any of them:
+ *
+ * 1. DOM TEXT IS THE TRUTH, AND ITS NODE NEVER MOVES. The first call upgrades
+ *    a chip label into a permanent two-child shell: a `.gev-flap-text` span
+ *    holding one long-lived `Text` node, and an `aria-hidden`
+ *    `.gev-flap-cells` sibling. After that the ONLY text operation for the
+ *    life of the chip is `node.data = next` — a single `characterData`
+ *    mutation. Nothing is ever reparented, so the label is never
+ *    transiently empty and the `aria-live` region never sees a removal /
+ *    reinsertion pair it could announce twice. `element.textContent` is the
+ *    settled string at every instant, because the cells carry NO text at all:
+ *    both glyphs are CSS generated content (`::before` from `data-flap-prev`,
+ *    `::after` from `data-flap-next`), which never reaches `textContent`.
+ *    QA pins and the traffic chip's own `textContent !==` guard in ui.js
+ *    therefore always read the truth; the flaps are purely visual.
+ *
+ * 2. NO ANIMATION LOOP, AND EXACTLY ONE TIMER PER CHANGE. The motion is CSS
+ *    `animation`/`transition` only, triggered once per text change and
+ *    staggered via a per-cell `--gev-flap-delay` custom property. A change
+ *    schedules exactly ONE `setTimeout` — the settle that strips the cells.
+ *    The width ease ends on a `transitionend`/`transitioncancel` listener,
+ *    not a second timer. There is zero per-frame JS and zero periodic work;
+ *    idle cost is nothing, and nothing here requests a Cesium render — the
+ *    chips are DOM, outside the panel-stack observers, so the render governor
+ *    is untouched.
+ *
+ * 3. ONLY WHAT WAS VISIBLE FLAPS AWAY. An interrupted cascade (A→B cut short
+ *    by C) derives each column's outgoing glyph from what that column is
+ *    actually SHOWING at that instant — which for a column whose stagger has
+ *    not elapsed yet is still A, not the pending B. Deriving it from the
+ *    pending target would flash a glyph that was never on screen.
+ *
+ * 4. COLUMNS NEVER RENUMBER MID-CASCADE. For the whole cascade the board keeps
+ *    one column per index of the LONGER string, each holding its own width.
+ *    A column the new string does not reach flaps its old glyph to a BLANK in
+ *    place — exactly how a departure board clears a cell — rather than
+ *    collapsing to zero width. Collapsing would stack the absolutely-positioned
+ *    outgoing glyphs on top of each other and would let a later glyph slide
+ *    into an earlier column, which in turn would make invariant 3 lie. The
+ *    container only takes up the slack AFTER every flap has landed, as one
+ *    smooth width ease.
+ *
+ * The motion vocabulary deliberately matches the cockpit odometer roll
+ * (`setCockpitRollingValue`, style.css `.cockpit-roll-token`): ~200 ms per
+ * character on `cubic-bezier(0.2, 0.75, 0.25, 1)`, reduced-motion collapsing
+ * the duration rather than removing the animation. What this adds over the
+ * odometer is the CASCADE — the left-to-right sweep that makes a departure
+ * board read as a departure board.
+ */
+
+/**
+ * One-line kill switch. Flip to `false` and every chip goes back to a plain
+ * instant text swap with no other code change.
+ */
+const SPLIT_FLAP_ENABLED = true;
+
+/** Time one character spends flipping. */
+const FLAP_CHAR_MS = 190;
+/** Nominal gap between consecutive characters starting their flip. */
+const FLAP_STAGGER_MS = 26;
+/**
+ * Hard ceiling for a whole cascade. Long labels compress their stagger to
+ * fit rather than running on — a chip that flaps for a full second reads as
+ * a slot machine, not a quiet mechanical settle.
+ */
+const FLAP_MAX_TOTAL_MS = 620;
+/** Slack after the last character lands before the cells are stripped. */
+const FLAP_SETTLE_SLACK_MS = 60;
+/**
+ * Fraction of a character's flip at which the outgoing glyph has rotated
+ * away and the incoming one takes over as what the eye reads. MUST track the
+ * `gev-flap-out`/`gev-flap-in` keyframe crossover in style.css — it is what
+ * makes an interrupted cascade pick honest outgoing glyphs.
+ */
+const FLAP_TURN_RATIO = 0.5;
+
+const HOST_CLASS = 'gev-flap-host';
+const ACTIVE_CLASS = 'gev-flap-active';
+const TEXT_CLASS = 'gev-flap-text';
+const CELLS_CLASS = 'gev-flap-cells';
+const CELL_CLASS = 'gev-flap-cell';
+const FLAPPING_CLASS = 'is-flapping';
+const SIZING_CLASS = 'gev-flap-sizing';
+
+/**
+ * What a reserved-but-empty column shows. A column the new string does not
+ * reach is not removed mid-cascade — it flaps to a blank and holds its place,
+ * which is both what a real board does and what keeps column indices stable.
+ */
+const BLANK = ' ';
+
+/** In-flight cascade state, keyed by element so nothing is stored on the node. */
+const flapStates = new WeakMap();
+/** Teardown for an in-flight width ease (listeners, not timers). */
+const widthEases = new WeakMap();
+
+function positiveNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+function nowMs() {
+  return typeof performance !== 'undefined' &&
+    typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+}
+
+/**
+ * Diff two strings into per-character flap cells with staggered delays.
+ *
+ * Unchanged characters do not animate — a real split-flap cell that already
+ * shows the right glyph simply does not move, which is both authentic and
+ * free. The stagger is rebased on the FIRST changed column so a label whose
+ * head is stable ("LOAD COMPLETE" keeps "LOAD" from "LOADING LIVE DATA")
+ * starts flipping immediately instead of idling through untouched columns.
+ *
+ * Pure — no DOM, no clock. This is the unit-tested core.
+ *
+ * @param {string} fromText - Glyphs currently on screen.
+ * @param {string} toText - Text to settle on.
+ * @param {{charMs?: number, staggerMs?: number, maxTotalMs?: number}} [options]
+ * @returns {{
+ *   cells: Array<{index: number, from: string, to: string, changed: boolean,
+ *                 vacating: boolean, delayMs: number}>,
+ *   durationMs: number, staggerMs: number, changedCount: number,
+ *   firstChanged: number, lastChanged: number,
+ * }}
+ */
+function planSplitFlap(fromText, toText, options = {}) {
+  const charMs = positiveNumber(options.charMs, FLAP_CHAR_MS);
+  const baseStagger = positiveNumber(options.staggerMs, FLAP_STAGGER_MS);
+  const maxTotalMs = positiveNumber(options.maxTotalMs, FLAP_MAX_TOTAL_MS);
+
+  // Code-point safe: a chip label may carry a separator like '·'.
+  const fromChars = Array.from(String(fromText ?? ''));
+  const toChars = Array.from(String(toText ?? ''));
+  const width = Math.max(fromChars.length, toChars.length);
+
+  let firstChanged = -1;
+  let lastChanged = -1;
+  for (let index = 0; index < width; index += 1) {
+    if ((fromChars[index] ?? '') !== (toChars[index] ?? '')) {
+      if (firstChanged < 0) firstChanged = index;
+      lastChanged = index;
+    }
+  }
+
+  if (firstChanged < 0) {
+    return {
+      cells: [],
+      durationMs: 0,
+      staggerMs: 0,
+      changedCount: 0,
+      firstChanged: -1,
+      lastChanged: -1,
+    };
+  }
+
+  // Compress the stagger so the whole cascade fits the budget.
+  const span = lastChanged - firstChanged + 1;
+  const room = Math.max(0, maxTotalMs - charMs);
+  const staggerMs = span > 1 ? Math.min(baseStagger, room / (span - 1)) : 0;
+
+  const cells = [];
+  let changedCount = 0;
+  for (let index = 0; index < width; index += 1) {
+    const from = fromChars[index] ?? '';
+    const to = toChars[index] ?? '';
+    const changed = from !== to;
+    if (changed) changedCount += 1;
+    cells.push({
+      index,
+      from,
+      to,
+      changed,
+      // The string shrank: this column has an old glyph to flap away and no
+      // new one, so it flaps to a blank and holds its place (invariant 4).
+      vacating: changed && to === '' && from !== '',
+      delayMs: changed ? Math.round((index - firstChanged) * staggerMs) : 0,
+    });
+  }
+
+  return {
+    cells,
+    durationMs: Math.round((lastChanged - firstChanged) * staggerMs + charMs),
+    staggerMs,
+    changedCount,
+    firstChanged,
+    lastChanged,
+  };
+}
+
+/**
+ * What one column is showing, before or after it turns over.
+ *
+ * A column with no glyph on the side being asked for is a RESERVED BLANK, not
+ * an absence: it is still on the board, holding its width and its index. That
+ * is what keeps the returned string positionally true.
+ */
+function displayedGlyph(cell, turned) {
+  if (!cell.changed) return cell.to;
+  return (turned ? cell.to : cell.from) || BLANK;
+}
+
+/**
+ * The glyphs a cascade is actually SHOWING at `elapsedMs`.
+ *
+ * A column that has not reached its stagger delay yet still displays its old
+ * glyph; one past the halfway turn displays its new one; unchanged columns
+ * never moved. This is what an interrupting change must flap away from, so
+ * no column ever shows a glyph that was never visually current.
+ *
+ * The result is positionally true by construction: it always has exactly one
+ * character per column, so index N of the string is always column N of the
+ * board. A cleared or not-yet-filled column reads as a blank rather than
+ * closing up — otherwise a later glyph would appear to occupy an earlier
+ * column and an interrupt would flap the wrong glyph away.
+ *
+ * Pure — no DOM.
+ *
+ * @param {{cells: Array<object>}} plan - A plan from `planSplitFlap`.
+ * @param {number} elapsedMs - Milliseconds since the cascade started.
+ * @param {{charMs?: number, turnRatio?: number}} [options]
+ * @returns {string} The currently displayed string, one character per column.
+ */
+function visibleGlyphs(plan, elapsedMs, options = {}) {
+  const charMs = positiveNumber(options.charMs, FLAP_CHAR_MS);
+  const turnRatio = Number.isFinite(Number(options.turnRatio))
+    ? Number(options.turnRatio)
+    : FLAP_TURN_RATIO;
+  const elapsed = Number.isFinite(Number(elapsedMs))
+    ? Math.max(0, Number(elapsedMs))
+    : 0;
+  const turn = charMs * turnRatio;
+  let out = '';
+  for (const cell of plan?.cells || []) {
+    out += displayedGlyph(cell, elapsed >= cell.delayMs + turn);
+  }
+  return out;
+}
+
+/** Whether the viewer asked for reduced motion. */
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+/**
+ * Whether an element is actually on screen right now.
+ *
+ * `getClientRects()` alone is not enough: clean-UI and recording mode hide the
+ * chips with `opacity: 0 !important; visibility: hidden !important` on the
+ * chip CONTAINER, and the traffic/CCTV chips sit at `opacity: 0` until they
+ * get `.visible`. All of those still report client rects, so a naive check
+ * would animate a chip nobody can see. `checkVisibility` walks ancestors for
+ * exactly these properties; the fallback walks them by hand.
+ */
+function isVisible(element) {
+  if (!element?.isConnected) return false;
+  if (typeof element.checkVisibility === 'function') {
+    return element.checkVisibility({
+      opacityProperty: true,
+      visibilityProperty: true,
+      contentVisibilityAuto: true,
+    });
+  }
+  if (typeof element.getClientRects !== 'function') return false;
+  if (element.getClientRects().length === 0) return false;
+  const view = element.ownerDocument?.defaultView;
+  if (typeof view?.getComputedStyle !== 'function') return true;
+  for (
+    let node = element;
+    node && node.nodeType === 1;
+    node = node.parentElement
+  ) {
+    const style = view.getComputedStyle(node);
+    if (style.visibility === 'hidden' || style.display === 'none') return false;
+    if (Number(style.opacity) === 0) return false;
+  }
+  return true;
+}
+
+function measureWidth(element) {
+  return typeof element.getBoundingClientRect === 'function'
+    ? element.getBoundingClientRect().width
+    : 0;
+}
+
+/**
+ * The chip label's permanent shell.
+ *
+ * Built once per element and then reused forever: the `Text` node inside
+ * `.gev-flap-text` is the same object for the life of the chip, so a label
+ * change never reparents anything (invariant 1). Rebuilt only if something
+ * outside this module has clobbered the label's children.
+ */
+function ensureHost(element) {
+  // O(1) happy path: this runs on every chip tick, including the ones where
+  // nothing changed.
+  const text = element.firstElementChild;
+  const cells = text?.nextElementSibling;
+  if (
+    text?.classList?.contains(TEXT_CLASS) &&
+    text.firstChild?.nodeType === 3 &&
+    cells?.classList?.contains(CELLS_CLASS) &&
+    !cells.nextElementSibling
+  ) {
+    return { text, cells };
+  }
+
+  const doc = element.ownerDocument || globalThis.document;
+  const carried = element.textContent ?? '';
+  const nextText = doc.createElement('span');
+  nextText.className = TEXT_CLASS;
+  nextText.append(doc.createTextNode(carried));
+  const nextCells = doc.createElement('span');
+  nextCells.className = CELLS_CLASS;
+  // Decorative only. Assistive tech ignores this subtree entirely, which is
+  // why rebuilding it every change cannot disturb the aria-live region.
+  nextCells.setAttribute('aria-hidden', 'true');
+  element.classList.add(HOST_CLASS);
+  element.replaceChildren(nextText, nextCells);
+  return { text: nextText, cells: nextCells };
+}
+
+/** Drop the width transition, leaving the element at its natural width. */
+function clearSizing(element) {
+  element.classList?.remove(SIZING_CLASS);
+  element.style?.removeProperty('width');
+  element.style?.removeProperty('--gev-flap-total');
+}
+
+function cancelWidthEase(element) {
+  const teardown = widthEases.get(element);
+  if (!teardown) return;
+  widthEases.delete(element);
+  teardown();
+}
+
+/**
+ * Ease the element between two measured widths.
+ *
+ * Called twice per change, and exactly one of the two ever has work to do: a
+ * GROWING label reserves its new columns the moment the cells go in, so the
+ * ease happens at the start; a SHRINKING label holds every column for the
+ * whole cascade, so the slack is only taken up once the flaps have landed.
+ *
+ * The end of the ease is a `transitionend` listener rather than a timer, so a
+ * change still schedules exactly one `setTimeout` (invariant 2). A transition
+ * that never fires is harmless: the pinned width equals the natural width it
+ * was easing to, and the next change clears it regardless.
+ */
+function easeWidth(element, fromWidth, toWidth, durationMs) {
+  cancelWidthEase(element);
+  if (!(fromWidth > 0.5) || Math.abs(toWidth - fromWidth) <= 0.5) {
+    clearSizing(element);
+    return false;
+  }
+  element.style.setProperty('--gev-flap-total', `${durationMs}ms`);
+  element.style.width = `${fromWidth}px`;
+  element.classList.add(SIZING_CLASS);
+  void element.offsetWidth; // flush the start value so the transition runs
+  element.style.width = `${toWidth}px`;
+
+  const finish = (event) => {
+    if (event && (event.target !== element || event.propertyName !== 'width'))
+      return;
+    cancelWidthEase(element);
+    clearSizing(element);
+  };
+  const teardown = () => {
+    element.removeEventListener('transitionend', finish);
+    element.removeEventListener('transitioncancel', finish);
+  };
+  element.addEventListener('transitionend', finish);
+  element.addEventListener('transitioncancel', finish);
+  widthEases.set(element, teardown);
+  return true;
+}
+
+function clearFlapTimer(element) {
+  const state = flapStates.get(element);
+  if (!state) return;
+  clearTimeout(state.timer);
+  flapStates.delete(element);
+}
+
+/**
+ * Put the label back in its resting state: real text visible, no cells.
+ *
+ * The `Text` node is untouched apart from its data, and neither permanent span
+ * is removed — only the decorative cells are emptied.
+ */
+function rest(element, host) {
+  element.classList.remove(ACTIVE_CLASS);
+  host.cells.replaceChildren();
+  element.style?.removeProperty('--gev-flap-dur');
+  // The real text is the accessible name; a stale aria-label from an earlier
+  // render would otherwise mask it.
+  element.removeAttribute?.('aria-label');
+}
+
+/**
+ * Strip the cells once the cascade lands, then take up any width slack.
+ *
+ * A shrinking label has been holding every column at full width for the whole
+ * cascade (invariant 4), so this is where the board narrows — as one eased
+ * transition, never a single-frame snap.
+ */
+function settle(element, expected, easeMs) {
+  flapStates.delete(element);
+  // A newer label won the race — leave its cells alone.
+  if (element.textContent !== expected) return;
+  const host = ensureHost(element);
+  const cascadeWidth = measureWidth(element);
+  cancelWidthEase(element);
+  clearSizing(element);
+  rest(element, host);
+  const naturalWidth = measureWidth(element);
+  easeWidth(element, cascadeWidth, naturalWidth, easeMs);
+}
+
+/**
+ * Set a chip label, flipping the changed characters into place.
+ *
+ * Safe to call on every tick: the chips are repainted by a 500 ms ticker and
+ * a 60 ms one, so an unchanged write must be a no-op or the animation would
+ * restart forever. Returns whether a flap was actually started.
+ *
+ * @param {HTMLElement|null} element - Chip label element.
+ * @param {string} text - Text to settle on.
+ * @param {{immediate?: boolean, charMs?: number, staggerMs?: number,
+ *          maxTotalMs?: number}} [options]
+ * @returns {boolean} True when a flap animation was started.
+ */
+function setSplitFlapText(element, text, options = {}) {
+  if (!element) return false;
+  const next = String(text ?? '');
+  // Upgrade to the permanent shell FIRST, so that one-time structural change
+  // happens on a tick where the text is not changing. Every subsequent label
+  // change is then a lone characterData mutation (invariant 1).
+  const host = ensureHost(element);
+  // textContent is the SETTLED string even mid-cascade, so this is the right
+  // idempotence check against the repeating chip tickers.
+  const settled = element.textContent ?? '';
+  if (settled === next) return false;
+
+  // What the viewer can SEE right now. Mid-cascade that is not the settled
+  // string: columns whose stagger has not elapsed are still showing the
+  // previous label's glyphs, and those are what must flap away.
+  const state = flapStates.get(element);
+  const displayed = state
+    ? visibleGlyphs(state.plan, nowMs() - state.startedAt, {
+        charMs: state.charMs,
+      })
+    : settled;
+  clearFlapTimer(element);
+
+  const beforeWidth = measureWidth(element);
+
+  const animate =
+    SPLIT_FLAP_ENABLED &&
+    options.immediate !== true &&
+    !prefersReducedMotion() &&
+    isVisible(element);
+
+  const plan = animate ? planSplitFlap(displayed, next, options) : null;
+
+  // THE ONLY TEXT OPERATION. One characterData mutation, no reparenting, so
+  // the label is never transiently empty and the live region cannot see a
+  // removal/reinsertion pair (invariant 1).
+  host.text.firstChild.data = next;
+
+  if (!plan?.changedCount) {
+    cancelWidthEase(element);
+    clearSizing(element);
+    rest(element, host);
+    return false;
+  }
+
+  const doc = element.ownerDocument || globalThis.document;
+  const charMs = positiveNumber(options.charMs, FLAP_CHAR_MS);
+
+  const cellNodes = [];
+  for (const cell of plan.cells) {
+    const node = doc.createElement('span');
+    node.className = CELL_CLASS;
+    // Every column carries an in-flow incoming face, so every column holds a
+    // width and its index for the whole cascade (invariant 4). A column the
+    // new string does not reach flaps to a blank rather than collapsing.
+    node.dataset.flapNext = cell.to || BLANK;
+    if (cell.changed) {
+      node.classList.add(FLAPPING_CLASS);
+      node.dataset.flapPrev = cell.from || BLANK;
+      node.style.setProperty('--gev-flap-delay', `${cell.delayMs}ms`);
+    }
+    cellNodes.push(node);
+  }
+
+  element.removeAttribute('aria-label');
+  cancelWidthEase(element);
+  clearSizing(element);
+  // Only the decorative sibling is rebuilt; the text node is not involved.
+  host.cells.replaceChildren(...cellNodes);
+  element.classList.add(ACTIVE_CLASS);
+  element.style.setProperty('--gev-flap-dur', `${charMs}ms`);
+
+  // Width, phase one. A GROWING label reserves its new columns the instant the
+  // cells go in, so ease from what was on screen to the cascade width. A
+  // shrinking one is already at cascade width, so this is a no-op and the ease
+  // happens in settle() instead, once the flaps have landed.
+  easeWidth(element, beforeWidth, measureWidth(element), plan.durationMs);
+
+  // The one and only timer this change schedules (invariant 2).
+  flapStates.set(element, {
+    plan,
+    charMs,
+    startedAt: nowMs(),
+    timer: setTimeout(
+      () => settle(element, next, plan.durationMs),
+      plan.durationMs + FLAP_SETTLE_SLACK_MS,
+    ),
+  });
+  return true;
+}
+
+/** Stop decoration without replacing the label's permanent accessible text. */
+function disposeSplitFlap(element) {
+  if (!element) return;
+  clearFlapTimer(element);
+  cancelWidthEase(element);
+  clearSizing(element);
+  const cells = element.querySelector?.('.gev-flap-cells');
+  if (cells) rest(element, { cells });
+}
+
+
+/**
+ * FLIR — Forward Looking Infrared
+ * Military-grade thermal imaging with White-Hot/Black-Hot modes,
+ * coherent temporal noise, hot-spot bloom, temperature banding,
+ * soft IR diffraction, and full HUD overlay rendered in GLSL.
+ *
+ * Exposed uniforms:
+ *   sensitivity (0-1) — contrast/range of temperature mapping
+ *   bloom (0-1)       — hot-spot bloom/bleed intensity
+ *   mode (0-1)        — 0 = White-Hot, 1 = Black-Hot (step at 0.5)
+ *   pixelation (1-6)  — sensor resolution pixelation grid size
+ *   palette (0-1)     — 0 = monochrome FLIR, 1 = Ironbow "Predator" color ramp
+ */
+const thermalShader = {
+  name: 'thermal',
+  uniforms: {
+    sensitivity: { default: 0.75, min: 0, max: 1, label: String('Sensitivity') },
+    bloom: { default: 0.65, min: 0, max: 1, label: String('Bloom') },
+    mode: { default: 0.0, min: 0, max: 1, label: String('WHOT/BHOT') },
+    pixelation: { default: 1.5, min: 1, max: 6, label: String('Pixelation') },
+    palette: { default: 0.0, min: 0, max: 1, label: String('Ironbow') },
+  },
+  fragmentShader: /* glsl */ `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float intensity;
+    uniform float time;
+    uniform float sensitivity;
+    uniform float bloom;
+    uniform float mode;
+    uniform float pixelation;
+    uniform float palette;
+    in vec2 v_textureCoordinates;
+
+    // ── Ironbow "Predator" thermal palette ────────────────
+    // Maps a 0-1 temperature to the classic FLIR ironbow ramp:
+    // black -> deep purple -> magenta -> red -> orange -> yellow -> white.
+    vec3 ironbow(float t) {
+      t = clamp(t, 0.0, 1.0);
+      const vec3 c0 = vec3(0.0, 0.0, 0.0);     // cold
+      const vec3 c1 = vec3(0.13, 0.0, 0.30);   // deep purple
+      const vec3 c2 = vec3(0.49, 0.0, 0.45);   // magenta
+      const vec3 c3 = vec3(0.86, 0.10, 0.18);  // red
+      const vec3 c4 = vec3(1.0, 0.55, 0.0);    // orange
+      const vec3 c5 = vec3(1.0, 0.91, 0.32);   // yellow
+      const vec3 c6 = vec3(1.0, 1.0, 1.0);     // hot (white)
+      float s = t * 6.0;
+      if (s < 1.0) return mix(c0, c1, s);
+      if (s < 2.0) return mix(c1, c2, s - 1.0);
+      if (s < 3.0) return mix(c2, c3, s - 2.0);
+      if (s < 4.0) return mix(c3, c4, s - 3.0);
+      if (s < 5.0) return mix(c4, c5, s - 4.0);
+      return mix(c5, c6, s - 5.0);
+    }
+
+    // ── Value noise (coherent, smooth, drifting) ──────────
+    float hash(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+
+    float valueNoise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f); // smoothstep interpolation
+      float a = hash(i);
+      float b = hash(i + vec2(1.0, 0.0));
+      float c = hash(i + vec2(0.0, 1.0));
+      float d = hash(i + vec2(1.0, 1.0));
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+
+    // Fractal Brownian motion for layered coherent noise
+    float fbm(vec2 p) {
+      float v = 0.0;
+      float a = 0.5;
+      vec2 shift = vec2(100.0);
+      for (int i = 0; i < 4; i++) {
+        v += a * valueNoise(p);
+        p = p * 2.0 + shift;
+        a *= 0.5;
+      }
+      return v;
+    }
+
+    // ── 7-segment digit renderer ──────────────────────────
+    float segment(vec2 p, int seg) {
+      float s = 0.0;
+      if (seg == 0) s = step(0.2, p.x) * step(p.x, 0.8) * step(0.85, p.y) * step(p.y, 1.0);
+      if (seg == 1) s = step(0.7, p.x) * step(p.x, 0.9) * step(0.5, p.y) * step(p.y, 0.95);
+      if (seg == 2) s = step(0.7, p.x) * step(p.x, 0.9) * step(0.05, p.y) * step(p.y, 0.5);
+      if (seg == 3) s = step(0.2, p.x) * step(p.x, 0.8) * step(0.0, p.y) * step(p.y, 0.15);
+      if (seg == 4) s = step(0.1, p.x) * step(p.x, 0.3) * step(0.05, p.y) * step(p.y, 0.5);
+      if (seg == 5) s = step(0.1, p.x) * step(p.x, 0.3) * step(0.5, p.y) * step(p.y, 0.95);
+      if (seg == 6) s = step(0.2, p.x) * step(p.x, 0.8) * step(0.42, p.y) * step(p.y, 0.58);
+      return s;
+    }
+
+    float digit(vec2 p, int d) {
+      int masks[10] = int[10](0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B);
+      int m = masks[d];
+      float s = 0.0;
+      for (int i = 0; i < 7; i++) {
+        if ((m >> (6 - i) & 1) == 1) s += segment(p, i);
+      }
+      return clamp(s, 0.0, 1.0);
+    }
+
+    // Render a character (digit, '.', or '°') at position
+    float renderChar(vec2 p, int ch) {
+      if (ch == 10) { // '.' decimal point
+        return smoothstep(0.15, 0.0, length(p - vec2(0.5, 0.08)));
+      }
+      if (ch == 11) { // '°' degree symbol
+        float ring = abs(length(p - vec2(0.5, 0.82)) - 0.08);
+        return smoothstep(0.04, 0.02, ring);
+      }
+      if (ch >= 0 && ch <= 9) return digit(p, ch);
+      return 0.0;
+    }
+
+    // ── Crosshair ─────────────────────────────────────────
+    float crosshair(vec2 uv) {
+      vec2 c = uv - 0.5;
+      float h = smoothstep(0.0015, 0.0005, abs(c.y)) *
+                step(0.015, abs(c.x)) * step(abs(c.x), 0.04);
+      float v = smoothstep(0.0015, 0.0005, abs(c.x)) *
+                step(0.015, abs(c.y)) * step(abs(c.y), 0.04);
+      return clamp(h + v, 0.0, 1.0);
+    }
+
+    // ── Scale bar (right edge) ────────────────────────────
+    float scaleBar(vec2 uv) {
+      // Vertical bar on right edge
+      float barX = step(0.94, uv.x) * step(uv.x, 0.955);
+      float barY = step(0.15, uv.y) * step(uv.y, 0.85);
+      return barX * barY;
+    }
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec2 dims = colorTextureDimensions;
+      vec2 texel = 1.0 / dims;
+      vec2 hudUV = uv; // preserve original UV for HUD overlay
+
+      // ── Circular vignette mask (FLIR optics field of view) ──
+      vec2 centered = uv * 2.0 - 1.0;
+      float aspect = dims.x / dims.y;
+      centered.x *= aspect;
+      float radius = length(centered);
+      float lensMask = pow(1.0 - smoothstep(0.6, 1.05, radius), 0.7);
+      // Tube brightness falloff (center brightest)
+      float lensShading = 1.0 - radius * radius * 0.25;
+      lensShading = max(lensShading, 0.0);
+
+      // If outside lens, render black
+      if (lensMask < 0.001) {
+        out_FragColor = vec4(vec3(0.0), 1.0);
+        return;
+      }
+
+      // ── Sensor resolution pixelation (authentic FLIR resolution limits) ──
+      float pixSize = mix(1.0, pixelation, intensity);
+      vec2 snappedUV = floor(uv * dims / pixSize) * pixSize / dims;
+      uv = mix(uv, snappedUV, intensity);
+
+      // ── Soft IR blur (thermal cameras have lower resolution / diffraction) ──
+      vec3 blurred = vec3(0.0);
+      float totalWeight = 0.0;
+      for (int y = -2; y <= 2; y++) {
+        for (int x = -2; x <= 2; x++) {
+          float w = exp(-0.5 * float(x * x + y * y) / 2.0);
+          blurred += texture(colorTexture, uv + vec2(float(x), float(y)) * texel * 1.5).rgb * w;
+          totalWeight += w;
+        }
+      }
+      blurred /= totalWeight;
+      vec4 original = texture(colorTexture, uv);
+
+      // Mix between sharp and blurred based on intensity
+      vec3 src = mix(original.rgb, blurred, 0.6 * intensity);
+
+      // ── Luminance → temperature mapping ─────────────────
+      float luma = dot(src, vec3(0.299, 0.587, 0.114));
+
+      // Sensitivity remaps the luminance range
+      float sens = mix(0.25, 1.0, sensitivity);
+      float temp = clamp((luma - (0.5 - sens * 0.5)) / sens, 0.0, 1.0);
+
+      // ── Temperature banding (contour lines) ─────────────
+      float bands = 12.0;
+      float bandLine = abs(fract(temp * bands) - 0.5);
+      float contour = smoothstep(0.04, 0.06, bandLine);
+      temp *= mix(1.0, contour * 0.85 + 0.15, 0.3 * intensity);
+
+      // ── White-Hot / Black-Hot mode ──────────────────────
+      float isBlackHot = step(0.5, mode);
+      float thermal = mix(temp, 1.0 - temp, isBlackHot);
+
+      // Monochrome FLIR (white/black-hot) vs Ironbow "Predator" color ramp.
+      // Ironbow maps TRUE temperature (cold->dark, hot->white) so the colors
+      // read correctly regardless of the WHOT/BHOT toggle.
+      vec3 mono = vec3(thermal);
+      vec3 iron = ironbow(temp);
+      vec3 thermalColor = mix(mono, iron, palette);
+
+      // ── Hot-spot bloom/bleed ────────────────────────────
+      // Sample a wider area for bloom on bright spots
+      float bloomSample = 0.0;
+      float bloomWeight = 0.0;
+      for (int y = -4; y <= 4; y++) {
+        for (int x = -4; x <= 4; x++) {
+          vec2 offset = vec2(float(x), float(y)) * texel * 3.0;
+          float sLuma = dot(texture(colorTexture, uv + offset).rgb, vec3(0.299, 0.587, 0.114));
+          float sMapped = clamp((sLuma - (0.5 - sens * 0.5)) / sens, 0.0, 1.0);
+          float sFinal = mix(sMapped, 1.0 - sMapped, isBlackHot);
+          float w = exp(-0.5 * float(x * x + y * y) / 8.0);
+          // Only bloom the "hot" pixels (bright in WHOT, dark values in BHOT...
+          // but since we already inverted, just bloom high values)
+          float hotness = smoothstep(0.6, 1.0, sFinal);
+          bloomSample += hotness * w;
+          bloomWeight += w;
+        }
+      }
+      bloomSample /= bloomWeight;
+      thermalColor += bloomSample * bloom * 0.8;
+
+      // ── Coherent temporal noise (slowly drifting, cloud-like) ──
+      vec2 noiseCoord = uv * 80.0 + vec2(time * 0.3, time * 0.2);
+      float noise = fbm(noiseCoord);
+      noise = (noise - 0.5) * 0.08 * intensity;
+      thermalColor += noise;
+
+      // ── Subtle motion blur feel (slight blur) ───────────
+      // Already handled by the initial IR blur above
+
+      // ── HUD Overlay ─────────────────────────────────────
+      float hud = 0.0;
+
+      // Top-left: "FLIR" label + mode indicator
+      // Rendered as simple box presence markers (not full text rendering)
+      // We'll use a simplified approach: render mode text near top-left
+      vec2 labelArea = (hudUV - vec2(0.02, 0.92)) / vec2(0.08, 0.04);
+      if (labelArea.x >= 0.0 && labelArea.x <= 1.0 && labelArea.y >= 0.0 && labelArea.y <= 1.0) {
+        // Simple horizontal bar as "FLIR" label marker
+        hud += step(0.1, labelArea.x) * step(labelArea.x, 0.9) *
+               step(0.3, labelArea.y) * step(labelArea.y, 0.7) * 0.6;
+      }
+
+      // Mode indicator below label
+      vec2 modeArea = (hudUV - vec2(0.02, 0.88)) / vec2(0.06, 0.03);
+      if (modeArea.x >= 0.0 && modeArea.x <= 1.0 && modeArea.y >= 0.0 && modeArea.y <= 1.0) {
+        hud += step(0.1, modeArea.x) * step(modeArea.x, 0.9) *
+               step(0.2, modeArea.y) * step(modeArea.y, 0.8) * 0.4;
+      }
+
+      // Center crosshair
+      hud += crosshair(hudUV) * 0.7;
+
+      // Top-right: simulated temperature readout (derived from center luminance)
+      float centerLuma = dot(texture(colorTexture, vec2(0.5)).rgb, vec3(0.299, 0.587, 0.114));
+      float tempC = 20.0 + centerLuma * 30.0; // 20°C to 50°C range
+      int tempInt = int(tempC);
+      int tempDec = int(fract(tempC) * 10.0);
+
+      // Temperature digits at top-right
+      float tempHud = 0.0;
+      vec2 tempOrigin = vec2(0.88, 0.92);
+      vec2 charSize = vec2(0.018, 0.035);
+      float spacing = 0.02;
+
+      // Tens digit
+      vec2 d1p = (hudUV - tempOrigin) / charSize;
+      if (d1p.x >= 0.0 && d1p.x <= 1.0 && d1p.y >= 0.0 && d1p.y <= 1.0) {
+        tempHud += renderChar(d1p, tempInt / 10);
+      }
+      // Ones digit
+      vec2 d2p = (hudUV - (tempOrigin + vec2(spacing, 0.0))) / charSize;
+      if (d2p.x >= 0.0 && d2p.x <= 1.0 && d2p.y >= 0.0 && d2p.y <= 1.0) {
+        tempHud += renderChar(d2p, tempInt % 10);
+      }
+      // Decimal point
+      vec2 dpp = (hudUV - (tempOrigin + vec2(spacing * 2.0, 0.0))) / charSize;
+      if (dpp.x >= 0.0 && dpp.x <= 1.0 && dpp.y >= 0.0 && dpp.y <= 1.0) {
+        tempHud += renderChar(dpp, 10); // '.'
+      }
+      // Decimal digit
+      vec2 d3p = (hudUV - (tempOrigin + vec2(spacing * 2.6, 0.0))) / charSize;
+      if (d3p.x >= 0.0 && d3p.x <= 1.0 && d3p.y >= 0.0 && d3p.y <= 1.0) {
+        tempHud += renderChar(d3p, tempDec);
+      }
+      // Degree symbol
+      vec2 dgp = (hudUV - (tempOrigin + vec2(spacing * 3.5, 0.0))) / charSize;
+      if (dgp.x >= 0.0 && dgp.x <= 1.0 && dgp.y >= 0.0 && dgp.y <= 1.0) {
+        tempHud += renderChar(dgp, 11); // '°'
+      }
+      hud += tempHud * 0.8;
+
+      // Bottom-right: frame counter
+      int frame = int(mod(time * 30.0, 10000.0));
+      float framHud = 0.0;
+      vec2 fOrigin = vec2(0.88, 0.04);
+      for (int i = 0; i < 4; i++) {
+        int dv = (frame / int(pow(10.0, float(3 - i)))) % 10;
+        vec2 fp = (hudUV - (fOrigin + vec2(float(i) * spacing, 0.0))) / charSize;
+        if (fp.x >= 0.0 && fp.x <= 1.0 && fp.y >= 0.0 && fp.y <= 1.0) {
+          framHud += renderChar(fp, dv);
+        }
+      }
+      hud += framHud * 0.5;
+
+      // Scale bar (right edge gradient)
+      float bar = scaleBar(hudUV);
+      if (bar > 0.0) {
+        float barGrad = (hudUV.y - 0.15) / 0.7; // 0 at bottom, 1 at top
+        float barVal = mix(barGrad, 1.0 - barGrad, isBlackHot);
+        thermalColor = mix(thermalColor, vec3(barVal), bar * 0.9);
+      }
+
+      // Composite HUD (rendered in white, slightly transparent)
+      float hudBright = mix(1.0, 0.0, isBlackHot); // HUD is white in WHOT, dark in BHOT inverted
+      // Actually, HUD should always be visible — use contrast
+      thermalColor += hud * 0.6 * intensity;
+
+      // ── Lens shading + vignette ───────────────────
+      thermalColor *= lensShading;
+      thermalColor *= lensMask;
+
+      // Clamp final
+      thermalColor = clamp(thermalColor, 0.0, 1.0);
+
+      // Blend with original based on intensity, then fade to black at lens edges
+      vec3 finalColor = mix(original.rgb, thermalColor, intensity);
+      finalColor *= mix(1.0, lensMask, intensity);
+
+      out_FragColor = vec4(finalColor, 1.0);
+    }
+  `,
+};
+
+
+/**
+ * Night Vision / NVG — PVS-14 Image Intensifier Emulation
+ * P43 phosphor green, intensifier tube bloom, circular vignette,
+ * scintillation noise, honeycomb pattern, auto-gain, HUD overlay.
+ *
+ * Exposed uniforms:
+ *   gain (0-1)        — intensifier gain (bloom + noise balance)
+ *   bloom (0-1)       — bloom/halo intensity around bright sources
+ *   scanlineStr (0-1) — scanline intensity (kept for compatibility)
+ *   pixelation (1-6)  — intensifier tube resolution pixelation
+ */
+const nightVisionShader = {
+  name: 'surveillance',
+  uniforms: {
+    gain: { default: 0.55, min: 0, max: 1, label: String('Gain') },
+    bloom: { default: 0.3, min: 0, max: 1, label: String('Bloom') },
+    scanlineStr: { default: 1.0, min: 0, max: 1, label: String('Scanlines') },
+    pixelation: { default: 2.5, min: 1, max: 6, label: String('Pixelation') },
+  },
+  fragmentShader: /* glsl */ `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float intensity;
+    uniform float time;
+    uniform float gain;
+    uniform float bloom;
+    uniform float scanlineStr;
+    uniform float pixelation;
+    in vec2 v_textureCoordinates;
+
+    // ── Noise functions ───────────────────────────────────
+    float hash(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+
+    float valueNoise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      float a = hash(i);
+      float b = hash(i + vec2(1.0, 0.0));
+      float c = hash(i + vec2(0.0, 1.0));
+      float d = hash(i + vec2(1.0, 1.0));
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+
+    // ── Barrel distortion (NVG lens) ──────────────────────
+    vec2 barrelDistort(vec2 uv, float strength) {
+      vec2 c = uv * 2.0 - 1.0;
+      float r2 = dot(c, c);
+      float distort = 1.0 + r2 * strength * 0.5 + r2 * r2 * strength * 0.15;
+      c *= distort;
+      return c * 0.5 + 0.5;
+    }
+
+    // ── Honeycomb pattern (fiber optic plate texture) ─────
+    float honeycomb(vec2 uv) {
+      vec2 dims = colorTextureDimensions;
+      float scale = min(dims.x, dims.y) * 0.008;
+      vec2 p = uv * dims * scale;
+      // Hex grid
+      vec2 r = vec2(1.0, 1.732);
+      vec2 h = r * 0.5;
+      vec2 a = mod(p, r) - h;
+      vec2 b = mod(p - h, r) - h;
+      vec2 gv = dot(a, a) < dot(b, b) ? a : b;
+      float d = max(abs(gv.x), abs(gv.y * 0.577 + abs(gv.x) * 0.5));
+      return smoothstep(0.4, 0.45, d);
+    }
+
+    // ── 7-segment digit renderer ──────────────────────────
+    float segment(vec2 p, int seg) {
+      float s = 0.0;
+      if (seg == 0) s = step(0.2, p.x) * step(p.x, 0.8) * step(0.85, p.y) * step(p.y, 1.0);
+      if (seg == 1) s = step(0.7, p.x) * step(p.x, 0.9) * step(0.5, p.y) * step(p.y, 0.95);
+      if (seg == 2) s = step(0.7, p.x) * step(p.x, 0.9) * step(0.05, p.y) * step(p.y, 0.5);
+      if (seg == 3) s = step(0.2, p.x) * step(p.x, 0.8) * step(0.0, p.y) * step(p.y, 0.15);
+      if (seg == 4) s = step(0.1, p.x) * step(p.x, 0.3) * step(0.05, p.y) * step(p.y, 0.5);
+      if (seg == 5) s = step(0.1, p.x) * step(p.x, 0.3) * step(0.5, p.y) * step(p.y, 0.95);
+      if (seg == 6) s = step(0.2, p.x) * step(p.x, 0.8) * step(0.42, p.y) * step(p.y, 0.58);
+      return s;
+    }
+
+    float digit(vec2 p, int d) {
+      int masks[10] = int[10](0x7E, 0x30, 0x6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B);
+      int m = masks[d];
+      float s = 0.0;
+      for (int i = 0; i < 7; i++) {
+        if ((m >> (6 - i) & 1) == 1) s += segment(p, i);
+      }
+      return clamp(s, 0.0, 1.0);
+    }
+
+    // Render HH:MM:SS timestamp
+    float renderTimestamp(vec2 uv) {
+      vec2 tsOrigin = vec2(0.02, 0.03);
+      vec2 tsSize = vec2(0.22, 0.035);
+      vec2 p = (uv - tsOrigin) / tsSize;
+      if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0) return 0.0;
+
+      int totalSec = int(mod(time, 86400.0));
+      int hours = totalSec / 3600;
+      int minutes = (totalSec % 3600) / 60;
+      int seconds = totalSec % 60;
+
+      float charWidth = 1.0 / 8.5;
+      int charIdx = int(p.x / charWidth);
+      float localX = mod(p.x, charWidth) / charWidth;
+      vec2 localP = vec2(localX, p.y);
+
+      int dv = -1;
+      if (charIdx == 0) dv = hours / 10;
+      else if (charIdx == 1) dv = hours % 10;
+      else if (charIdx == 2) return (step(0.3, localP.x) * step(localP.x, 0.7)) *
+                                    (step(0.2, localP.y) * step(localP.y, 0.4) + step(0.6, localP.y) * step(localP.y, 0.8));
+      else if (charIdx == 3) dv = minutes / 10;
+      else if (charIdx == 4) dv = minutes % 10;
+      else if (charIdx == 5) return (step(0.3, localP.x) * step(localP.x, 0.7)) *
+                                    (step(0.2, localP.y) * step(localP.y, 0.4) + step(0.6, localP.y) * step(localP.y, 0.8));
+      else if (charIdx == 6) dv = seconds / 10;
+      else if (charIdx == 7) dv = seconds % 10;
+
+      if (dv < 0 || dv > 9) return 0.0;
+      return digit(localP, dv);
+    }
+
+    // ── Crosshair (thin, subtle NVG reticle) ──────────────
+    float crosshair(vec2 uv) {
+      vec2 c = uv - 0.5;
+      float h = smoothstep(0.001, 0.0004, abs(c.y)) *
+                step(0.01, abs(c.x)) * step(abs(c.x), 0.025);
+      float v = smoothstep(0.001, 0.0004, abs(c.x)) *
+                step(0.01, abs(c.y)) * step(abs(c.y), 0.025);
+      return clamp(h + v, 0.0, 1.0);
+    }
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec2 dims = colorTextureDimensions;
+      vec2 texel = 1.0 / dims;
+
+      // ── Barrel distortion (NVG lens distortion) ─────────
+      float dist = 0.5 * intensity;
+      vec2 distUV = barrelDistort(uv, dist);
+
+      // ── Circular vignette mask (NVG tube field of view) ──
+      vec2 centered = uv * 2.0 - 1.0;
+      float aspect = dims.x / dims.y;
+      centered.x *= aspect;
+      float radius = length(centered);
+      float tubeMask = pow(1.0 - smoothstep(0.6, 1.05, radius), 0.7);
+      // Tube brightness falloff (center brightest)
+      float tubeShading = 1.0 - radius * radius * 0.3;
+      tubeShading = max(tubeShading, 0.0);
+
+      // If outside tube, render black
+      if (tubeMask < 0.001) {
+        out_FragColor = vec4(vec3(0.0), 1.0);
+        return;
+      }
+
+      // Black outside distorted area
+      if (distUV.x < 0.0 || distUV.x > 1.0 || distUV.y < 0.0 || distUV.y > 1.0) {
+        out_FragColor = vec4(vec3(0.0), 1.0);
+        return;
+      }
+
+      // ── Intensifier tube resolution pixelation ────────────
+      float pixSize = mix(1.0, pixelation, intensity);
+      vec2 snappedUV = floor(distUV * dims / pixSize) * pixSize / dims;
+      distUV = mix(distUV, snappedUV, intensity);
+
+      vec4 original = texture(colorTexture, distUV);
+
+      // ── Luminance ───────────────────────────────────────
+      float luma = dot(original.rgb, vec3(0.299, 0.587, 0.114));
+
+      // ── Auto-gain response ──────────────────────────────
+      // Higher gain = more amplification, more noise, more bloom
+      float gainLevel = mix(0.8, 2.5, gain);
+      float amplified = clamp(luma * gainLevel, 0.0, 1.0);
+
+      // Slight contrast curve for gain response
+      amplified = pow(amplified, mix(1.2, 0.7, gain));
+
+      // ── Intensifier tube bloom (THE key NVG visual) ─────
+      // Bloom around bright sources — wider kernel for realistic halos
+      float bloomAccum = 0.0;
+      float bloomW = 0.0;
+      for (int y = -5; y <= 5; y++) {
+        for (int x = -5; x <= 5; x++) {
+          vec2 offset = vec2(float(x), float(y)) * texel * 4.0;
+          float sLuma = dot(texture(colorTexture, distUV + offset).rgb, vec3(0.299, 0.587, 0.114));
+          float bright = smoothstep(0.4, 0.9, sLuma * gainLevel);
+          float w = exp(-float(x * x + y * y) / 18.0);
+          bloomAccum += bright * w;
+          bloomW += w;
+        }
+      }
+      bloomAccum /= bloomW;
+
+      // Edge glow / corona on bright objects
+      float corona = bloomAccum * bloom * 1.5;
+
+      // ── P43 phosphor green (530nm) ──────────────────────
+      vec3 phosphor = vec3(0.16, 1.0, 0.22);
+      vec3 nvgColor = phosphor * (amplified + corona);
+
+      // ── Scintillation (image intensifier sparkle noise) ──
+      // Base tube grain (slow, coherent)
+      vec2 grainCoord = uv * 120.0 + vec2(time * 0.5, time * 0.3);
+      float tubeGrain = valueNoise(grainCoord);
+      tubeGrain = (tubeGrain - 0.5) * mix(0.06, 0.2, gain) * intensity;
+      nvgColor += phosphor * tubeGrain;
+
+      // More noise in dark areas (real gain response)
+      float darkNoise = (1.0 - amplified) * hash(uv * dims + vec2(time * 200.0, time * 300.0));
+      nvgColor += phosphor * darkNoise * 0.08 * gain * intensity;
+
+      // ── Honeycomb fiber optic plate ─────────────────────
+      float hc = honeycomb(distUV);
+      nvgColor *= 1.0 - hc * 0.04 * intensity; // very subtle
+
+      // ── Scanlines (subtle, from the display) ────────────
+      float scanline = sin(distUV.y * dims.y * 1.2 + time * 2.0) * 0.5 + 0.5;
+      scanline = pow(scanline, 2.5);
+      nvgColor *= 1.0 - scanline * scanlineStr * 0.15 * intensity;
+
+      // ── Tube shading (brightness falloff from center) ───
+      nvgColor *= tubeShading;
+
+      // ── Circular vignette (dark edges, NVG tube shape) ──
+      nvgColor *= tubeMask;
+
+      // ── HUD Overlay ─────────────────────────────────────
+
+      // Top-left: "NVG" / "I²" label marker
+      vec2 labelArea = (uv - vec2(0.03, 0.92)) / vec2(0.06, 0.03);
+      if (labelArea.x >= 0.0 && labelArea.x <= 1.0 && labelArea.y >= 0.0 && labelArea.y <= 1.0) {
+        float lbl = step(0.1, labelArea.x) * step(labelArea.x, 0.9) *
+                    step(0.2, labelArea.y) * step(labelArea.y, 0.8);
+        nvgColor += phosphor * lbl * 0.3 * intensity;
+      }
+
+      // Gain indicator below label: "AUTO" marker (i18n-ignore: shader comment, not UI)
+      vec2 gainArea = (uv - vec2(0.03, 0.88)) / vec2(0.05, 0.025);
+      if (gainArea.x >= 0.0 && gainArea.x <= 1.0 && gainArea.y >= 0.0 && gainArea.y <= 1.0) {
+        float gLbl = step(0.1, gainArea.x) * step(gainArea.x, 0.9) *
+                     step(0.2, gainArea.y) * step(gainArea.y, 0.8);
+        nvgColor += phosphor * gLbl * 0.2 * intensity;
+      }
+
+      // Center crosshair (thin, subtle)
+      float ch = crosshair(uv);
+      nvgColor += phosphor * ch * 0.4 * intensity;
+
+      // Bottom-left: Timestamp (7-segment)
+      float ts = renderTimestamp(uv);
+      nvgColor += phosphor * ts * 0.6 * intensity;
+
+      // REC indicator — top-right (blinking)
+      vec2 recPos = uv - vec2(0.95, 0.94);
+      float recDot = smoothstep(0.008, 0.004, length(recPos));
+      float blink = step(0.5, fract(time * 0.8));
+      // REC dot in slightly warmer green
+      nvgColor += vec3(0.3, 1.0, 0.2) * recDot * blink * intensity;
+
+      // ── Final composite ─────────────────────────────────
+      nvgColor = clamp(nvgColor, 0.0, 1.0);
+
+      // Keep NVG output fully tube-masked at full intensity to avoid color bleed at the lens edge.
+      vec3 finalColor = mix(original.rgb, nvgColor * tubeMask, intensity);
+
+      out_FragColor = vec4(finalColor, 1.0);
+    }
+  `,
+};
+
+
+/**
+ * CRT Terminal — Dynamic CRT Monitor Aesthetic
+ * Pixelation + Bayer dithering + barrel distortion + scanlines +
+ * chromatic aberration + vignette + phosphor persistence/ghosting +
+ * horizontal jitter + flicker + glitch lines + RGB shadow mask subpixels
+ *
+ * Exposed uniforms:
+ *   pixelation (1-10)  — pixel grid size
+ *   distortion (0-1)   — CRT barrel/lens bulge strength
+ *   instability (0-1)  — jitter, flicker, glitch frequency
+ */
+const retroShader = {
+  name: 'retro',
+  uniforms: {
+    pixelation: { default: 5.0, min: 1, max: 10, label: String('Pixelation') },
+    distortion: { default: 0, min: 0, max: 1, label: String('Distortion') },
+    instability: { default: 0.4, min: 0, max: 1, label: String('Instability') },
+  },
+  fragmentShader: /* glsl */ `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float intensity;
+    uniform float pixelation;
+    uniform float distortion;
+    uniform float instability;
+    uniform float time;
+    in vec2 v_textureCoordinates;
+
+    // ── Hash for noise/randomness ─────────────────────────
+    float hash(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+
+    // 8x8 Bayer dithering matrix (normalized 0-1)
+    float bayer8(vec2 pos) {
+      ivec2 p = ivec2(mod(pos, 8.0));
+      int index = p.x + p.y * 8;
+      int bayer[64] = int[64](
+         0, 32,  8, 40,  2, 34, 10, 42,
+        48, 16, 56, 24, 50, 18, 58, 26,
+        12, 44,  4, 36, 14, 46,  6, 38,
+        60, 28, 52, 20, 62, 30, 54, 22,
+         3, 35, 11, 43,  1, 33,  9, 41,
+        51, 19, 59, 27, 49, 17, 57, 25,
+        15, 47,  7, 39, 13, 45,  5, 37,
+        63, 31, 55, 23, 61, 29, 53, 21
+      );
+      return float(bayer[index]) / 64.0;
+    }
+
+    // CRT barrel distortion
+    vec2 barrelDistort(vec2 uv, float strength) {
+      vec2 centered = uv * 2.0 - 1.0;
+      float r2 = dot(centered, centered);
+      float distort = 1.0 + r2 * strength * 0.4;
+      centered *= distort;
+      return centered * 0.5 + 0.5;
+    }
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec2 dims = colorTextureDimensions;
+      vec2 texel = 1.0 / dims;
+
+      // ── Barrel distortion (CRT monitor bulge) ───────────
+      float dist = distortion * intensity;
+      vec2 distUV = barrelDistort(uv, dist);
+
+      // Black outside the distorted area
+      if (distUV.x < 0.0 || distUV.x > 1.0 || distUV.y < 0.0 || distUV.y > 1.0) {
+        out_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+      }
+
+      // ── Horizontal jitter (random scanline displacement) ──
+      float lineY = floor(distUV.y * dims.y);
+      float jitterSeed = hash(vec2(lineY, floor(time * 8.0)));
+      // Only jitter a few lines at a time (sparse)
+      float jitterActive = step(0.97 - instability * 0.04, jitterSeed);
+      float jitterAmount = (hash(vec2(lineY * 7.0, floor(time * 12.0))) - 0.5) *
+                           0.008 * instability * jitterActive * intensity;
+      vec2 jitteredUV = distUV + vec2(jitterAmount, 0.0);
+
+      // ── Chromatic aberration — slight RGB channel offset ──
+      vec2 centered = jitteredUV - 0.5;
+      float caStrength = length(centered) * 0.008 * intensity;
+      float r = texture(colorTexture, jitteredUV + centered * caStrength).r;
+      float g = texture(colorTexture, jitteredUV).g;
+      float b = texture(colorTexture, jitteredUV - centered * caStrength).b;
+      vec4 color = vec4(r, g, b, 1.0);
+
+      // ── Pixelation: snap UV to grid ─────────────────────
+      float pixSize = mix(1.0, pixelation, intensity);
+      vec2 pixelUV = floor(jitteredUV * dims / pixSize) * pixSize / dims;
+      vec4 pixelColor = texture(colorTexture, mix(jitteredUV, pixelUV, intensity));
+
+      // Blend chromatic aberration with pixelated sample
+      color = mix(color, pixelColor, 0.7 * intensity);
+
+      // ── Bayer dithering before posterization ────────────
+      vec2 ditherCoord = jitteredUV * dims / pixSize;
+      float dither = bayer8(ditherCoord) - 0.5;
+      float ditherAmount = 0.12 * intensity;
+      vec3 dithered = color.rgb + dither * ditherAmount;
+
+      // ── Posterize: reduce color levels ──────────────────
+      float levels = mix(256.0, 10.0, intensity);
+      vec3 posterized = floor(dithered * levels + 0.5) / levels;
+
+      // ── Slight saturation boost ─────────────────────────
+      float gray = dot(posterized, vec3(0.299, 0.587, 0.114));
+      vec3 saturated = mix(vec3(gray), posterized, 1.0 + 0.3 * intensity);
+
+      // ── RGB shadow mask subpixel pattern ────────────────
+      // Each pixel shows faint R/G/B vertical stripes
+      float subpixelX = mod(distUV.x * dims.x, 3.0);
+      vec3 subpixelMask = vec3(
+        smoothstep(0.0, 0.8, 1.0 - abs(subpixelX - 0.5)),   // R stripe
+        smoothstep(0.0, 0.8, 1.0 - abs(subpixelX - 1.5)),   // G stripe
+        smoothstep(0.0, 0.8, 1.0 - abs(subpixelX - 2.5))    // B stripe
+      );
+      // Only apply at higher pixelation (visible "pixels")
+      float subpixelStrength = smoothstep(2.0, 6.0, pixSize) * 0.3 * intensity;
+      vec3 withSubpixels = mix(saturated, saturated * (subpixelMask * 0.7 + 0.3), subpixelStrength);
+
+      // ── Block edge darkening ────────────────────────────
+      vec2 pixelCenter = fract(distUV * dims / pixSize);
+      float blockEdge = smoothstep(0.0, 0.08, min(min(pixelCenter.x, 1.0 - pixelCenter.x),
+                                                    min(pixelCenter.y, 1.0 - pixelCenter.y)));
+      float edgeFactor = mix(1.0, blockEdge * 0.15 + 0.85, intensity);
+
+      vec3 result = withSubpixels * edgeFactor;
+
+      // ── Horizontal scanlines — rolling CRT refresh ──────
+      float scanY = distUV.y * dims.y;
+      float scanline = sin(scanY * 1.0 + time * 2.5) * 0.5 + 0.5;
+      scanline = pow(scanline, 1.5);
+      float scanFade = 0.35 * intensity;
+      result *= mix(1.0, scanline * scanFade + (1.0 - scanFade), intensity);
+
+      // ── Phosphor persistence / ghosting ─────────────────
+      // Approximate by blurring in a direction (simulates previous frame lingering)
+      vec3 ghost = texture(colorTexture, jitteredUV - vec2(texel.x * 2.0, 0.0)).rgb;
+      float ghostGray = dot(ghost, vec3(0.299, 0.587, 0.114));
+      // Blend a dim ghost of the offset sample
+      result = mix(result, result + vec3(ghostGray) * 0.08, instability * intensity);
+
+      // ── Flicker (overall brightness fluctuation ~50-60Hz) ──
+      float flicker = sin(time * 188.5) * 0.5 + 0.5; // ~60Hz equivalent
+      flicker = 1.0 - flicker * 0.03 * instability * intensity; // very subtle
+      result *= flicker;
+
+      // ── Glitch lines (rare horizontal bright bars) ──────
+      float glitchSeed = hash(vec2(floor(time * 2.0), 0.0));
+      float glitchLine = step(0.92 - instability * 0.08, glitchSeed);
+      if (glitchLine > 0.0) {
+        float glitchY = hash(vec2(floor(time * 2.0), 1.0));
+        float glitchHit = smoothstep(0.0, 0.003, abs(distUV.y - glitchY));
+        glitchHit = 1.0 - glitchHit;
+        result += glitchHit * 0.3 * instability * intensity;
+      }
+
+      // ── Warm phosphor tint (P1 green-amber) ─────────────
+      vec3 warmTint = result * vec3(1.02, 1.0, 0.94);
+      result = mix(result, warmTint, 0.4 * intensity);
+
+      // ── Edge vignette (darker corners — CRT curvature) ──
+      vec2 vigUV = distUV * (1.0 - distUV);
+      float vig = vigUV.x * vigUV.y * 20.0;
+      vig = clamp(pow(vig, 0.25 + 0.15 * intensity), 0.0, 1.0);
+      result *= mix(1.0, vig, 0.6 * intensity);
+
+      out_FragColor = vec4(mix(texture(colorTexture, uv).rgb, result, intensity), 1.0);
+    }
+  `,
+};
+
+
+/**
+ * Noir Style — Desaturation + High Contrast + Vignette
+ * Classic film noir / detective movie look
+ */
+const noirShader = {
+  name: 'noir',
+  uniforms: {
+    contrastAmt: { default: 1.2, min: 0, max: 2, label: String('Contrast') },
+    grainAmt: { default: 0.5, min: 0, max: 1, label: String('Grain') },
+    vignetteAmt: { default: 0.5, min: 0, max: 1, label: String('Vignette') },
+  },
+  fragmentShader: /* glsl */ `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float intensity;
+    uniform float contrastAmt;
+    uniform float grainAmt;
+    uniform float vignetteAmt;
+    in vec2 v_textureCoordinates;
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec4 color = texture(colorTexture, uv);
+
+      // Desaturate
+      float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+      vec3 gray = vec3(luma);
+      vec3 desaturated = mix(color.rgb, gray, intensity);
+
+      // High contrast with S-curve (driven by contrastAmt uniform)
+      float contrast = 1.0 + contrastAmt * intensity;
+      vec3 contrasted = (desaturated - 0.5) * contrast + 0.5;
+      contrasted = clamp(contrasted, 0.0, 1.0);
+
+      // Film grain (driven by grainAmt uniform)
+      float grain = fract(sin(dot(uv * colorTextureDimensions, vec2(12.9898, 78.233))) * 43758.5453);
+      grain = (grain - 0.5) * 0.08 * grainAmt * intensity;
+      contrasted += grain;
+
+      // Vignette (driven by vignetteAmt uniform)
+      vec2 vigUV = uv * (1.0 - uv);
+      float vig = vigUV.x * vigUV.y * 16.0;
+      vig = pow(vig, 0.3 + 0.4 * vignetteAmt * intensity);
+
+      // Slight sepia tint for warmth
+      vec3 sepia = vec3(
+        dot(contrasted, vec3(0.393, 0.769, 0.189)),
+        dot(contrasted, vec3(0.349, 0.686, 0.168)),
+        dot(contrasted, vec3(0.272, 0.534, 0.131))
+      );
+      vec3 tinted = mix(contrasted, sepia, 0.15 * intensity);
+
+      vec3 result = tinted * vig;
+      out_FragColor = vec4(mix(color.rgb, result, intensity), color.a);
+    }
+  `,
+};
+
+
+/**
+ * Anime / Studio Ghibli Style — Cel-shading + Saturation boost
+ * Transforms the world into an animated film look
+ */
+const animeShader = {
+  name: 'anime',
+  uniforms: {
+    saturation: { default: 1.0, min: 0, max: 2, label: String('Saturation') },
+    edgeThick: { default: 0.5, min: 0, max: 1, label: String('Edge Thickness') },
+  },
+  fragmentShader: /* glsl */ `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float intensity;
+    uniform float saturation;
+    uniform float edgeThick;
+    in vec2 v_textureCoordinates;
+
+    vec3 rgb2hsv(vec3 c) {
+      vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+      vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+      vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+      float d = q.x - min(q.w, q.y);
+      float e = 1.0e-10;
+      return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+
+    vec3 hsv2rgb(vec3 c) {
+      vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+      vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+      return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec2 texel = 1.0 / colorTextureDimensions;
+      vec4 color = texture(colorTexture, uv);
+
+      // Cel-shade: quantize luminance into bands
+      float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+      float bands = mix(256.0, 4.0, intensity);
+      float celLuma = floor(luma * bands + 0.5) / bands;
+      float lumaScale = (luma > 0.001) ? celLuma / luma : 1.0;
+      vec3 celColor = color.rgb * lumaScale;
+
+      // Boost saturation for vibrant anime look (driven by saturation uniform)
+      vec3 hsv = rgb2hsv(celColor);
+      hsv.y = min(hsv.y * (1.0 + 0.6 * intensity * saturation), 1.0);
+      hsv.z = min(hsv.z * (1.0 + 0.1 * intensity), 1.0);
+      vec3 saturated = hsv2rgb(hsv);
+
+      // Soft edge detection for outlines
+      vec4 left  = texture(colorTexture, uv + vec2(-texel.x, 0.0));
+      vec4 right = texture(colorTexture, uv + vec2( texel.x, 0.0));
+      vec4 up    = texture(colorTexture, uv + vec2(0.0,  texel.y));
+      vec4 down  = texture(colorTexture, uv + vec2(0.0, -texel.y));
+
+      float edgeH = length(right.rgb - left.rgb);
+      float edgeV = length(up.rgb - down.rgb);
+      float edge = sqrt(edgeH * edgeH + edgeV * edgeV);
+      float outline = 1.0 - smoothstep(0.05, mix(0.35, 0.1, edgeThick), edge) * 0.6 * intensity;
+
+      // Warm color shift (Ghibli palette tends warm)
+      vec3 warmShift = saturated * vec3(1.02, 1.0, 0.95);
+
+      vec3 result = warmShift * outline;
+      out_FragColor = vec4(mix(color.rgb, result, intensity), color.a);
+    }
+  `,
+};
+
+const PLACES = [{"name":"The Wave Organ","kind":"gem","lat":37.80855,"lon":-122.44013,"blurb":"A 1986 Exploratorium sound sculpture at the end of the Marina jetty. Pipes run down into the bay and gurgle and hum as the water moves, and the benches are carved granite from an old cemetery.","tip":"Best around high tide. About a 15-minute walk out past the St. Francis Yacht Club on an uneven path.","url":"https://www.exploratorium.edu/visit/wave-organ"},{"name":"Equator Coffees, Fort Mason","kind":"coffee","lat":37.80532,"lon":-122.43188,"blurb":"Marin-roasted specialty coffee at the Fort Mason gate, with Bay views. It sits on the waterfront walk from the Wharf to the Palace of Fine Arts.","tip":"Opens 7am on weekends. Small inside, more seating outside.","url":"https://www.equatorcoffees.com"},{"name":"Presidio Tunnel Tops","kind":"gem","lat":37.80362,"lon":-122.45657,"blurb":"14 acres of park built over the Presidio Parkway tunnels: lawns, a bridge-view overlook and the Field Station curiosity lab, about 10 minutes' walk from the Yoda Fountain.","tip":"Free and open daily. Food trucks nearby keep seasonal hours.","url":"https://presidio.gov/explore/attractions/presidio-tunnel-tops/"},{"name":"Earth Wall (Goldsworthy)","kind":"gem","lat":37.79757,"lon":-122.45888,"blurb":"A ball of eucalyptus branches set into a rammed-earth wall in the Presidio Officers' Club. Free history galleries inside cover the Ohlone, Spanish and US Army eras.","tip":"Public viewing Saturdays only, 11am–4pm. That's your Saturday.","url":"https://presidio.gov/explore/attractions/andy-goldsworthys-earth-wall"},{"name":"Spire (Goldsworthy)","kind":"gem","lat":37.79191,"lon":-122.46004,"blurb":"A 90-foot spike of 37 cypress trunks in a young forest by the Presidio golf course, scorched by a 2020 fire. Goldsworthy's first Presidio work, and a short walk from Wood Line.","tip":"Take the Bay Area Ridge Trail from Arguello Blvd rather than cutting through brush.","url":""},{"name":"Presidio Golf Course","kind":"gem","lat":37.79049,"lon":-122.45979,"blurb":"An 1895 Army-era course through eucalyptus and cypress, public since the 1990s. A driving range and clubhouse bar if a full round is too much.","tip":"Book tee times online. Dress for wind and fog.","url":"https://www.presidiogolf.com"},{"name":"Arsicault Bakery","kind":"eat","lat":37.78343,"lon":-122.45931,"blurb":"A tiny Inner Richmond counter often named the city's best croissant. Get the plain or almond croissant and a kouign-amann.","tip":"Opens 8am, no seating, sells out by early afternoon.","url":"https://www.arsicault-bakery.com"},{"name":"Fort Point","kind":"gem","lat":37.81061,"lon":-122.47709,"blurb":"A Civil War-era brick fort built directly under the south arch of the Golden Gate Bridge. Climb to the roof and look straight up at the deck.","tip":"Closed Tue and Wed; open Thu–Mon 10–5. Free.","url":"https://www.nps.gov/fopo/"},{"name":"Eagle Point labyrinth","kind":"gem","lat":37.78802,"lon":-122.50583,"blurb":"A short spur off the Lands End trail to a rock point facing the Golden Gate, where a stone labyrinth gets rebuilt every few years. The view of the bridge mouth is the reason to go.","tip":"The stones may not be laid out right now. Stairs on the way back up.","url":""},{"name":"Sutro Heights Park","kind":"gem","lat":37.77748,"lon":-122.51058,"blurb":"Adolph Sutro's old hilltop estate above the baths: a garden, a lion statue, house foundations and a stone parapet looking straight down Ocean Beach. Few people find it.","tip":"Free and open all day. Five minutes uphill from the baths.","url":""},{"name":"Lincoln Park Golf Course","kind":"gem","lat":37.78231,"lon":-122.49445,"blurb":"A hilly par-68 city course next to Lands End. The 17th tee looks across to the Golden Gate Bridge, which is rare for a public course anywhere.","tip":"Nonresident rate about $70 Fri–Sun. It's steep, so take a cart.","url":"https://sfrecpark.org/498/Lincoln-Park-Golf-Course"},{"name":"Green Apple Books","kind":"gem","lat":37.78306,"lon":-122.46472,"blurb":"A sprawling independent bookstore on Clement St, open since 1967. Creaky floors, handwritten staff picks, a big used section and a good cookbook shelf.","tip":"Open 10am–9pm daily. Clement St is also a dumpling and bakery strip.","url":"https://www.greenapplebooks.com"},{"name":"Pizzetta 211","kind":"eat","lat":37.78371,"lon":-122.48302,"blurb":"A tiny Outer Richmond pizzeria making thin, blistered pies from a short menu that changes often. The farm-egg pizza is a regular. A quieter counterpoint to Tony's.","tip":"Very small, so expect a wait at peak times.","url":"https://www.pizzetta211.com"},{"name":"Bison Paddock","kind":"gem","lat":37.76969,"lon":-122.49823,"blurb":"Bison have lived in Golden Gate Park since the 1890s, and a small herd still grazes here off JFK Drive. An odd, peaceful stop near Ocean Beach.","tip":"Walk the fence to the back side for the best views.","url":""},{"name":"Beach Chalet","kind":"eat","lat":37.76946,"lon":-122.51021,"blurb":"A 1925 building at the west end of Golden Gate Park with WPA-era murals downstairs and a brewpub upstairs looking over Ocean Beach.","tip":"Reserve a window table. Come for the view and the murals.","url":"https://www.beachchalet.com"},{"name":"Equator Coffees, Hwy 1","kind":"coffee","lat":37.88166,"lon":-122.52442,"blurb":"A surfboard-lined Equator cafe on Shoreline Highway, right where you turn off toward Muir Woods. Single-origin pour-over or the shakerato before the drive up.","tip":"Opens 6:30am. Last good coffee and pastry before the redwoods.","url":"https://www.equatorcoffees.com"},{"name":"The Pelican Inn","kind":"eat","lat":37.86467,"lon":-122.57493,"blurb":"A Tudor-style English pub a short walk from Muir Beach, with a real fireplace, a ploughman's lunch, fish and chips and pints. Right for a foggy November day.","tip":"Opens 11am daily. Fits between Muir Woods and the overlook.","url":"https://www.pelicaninn.com"},{"name":"Bay Model","kind":"gem","lat":37.86346,"lon":-122.49569,"blurb":"A 1.5-acre working hydraulic model of the entire Bay and Delta, built by the Army Corps of Engineers in the 1950s to simulate tides before computers could.","tip":"Closed Sun and Mon, so it won't fit Sunday's drive. Note for next time.","url":""},{"name":"Waldo Point houseboats","kind":"gem","lat":37.87246,"lon":-122.50197,"blurb":"Sausalito's floating neighborhood of hand-built, often eccentric houseboats. Otis Redding wrote '(Sittin' On) The Dock of the Bay' while staying here.","tip":"Park on Gate 5 Rd and stay on the public walkways. The docks are homes.","url":""},{"name":"Bar Bocce","kind":"eat","lat":37.8596,"lon":-122.48481,"blurb":"A waterfront pizza bar on Bridgeway with fire pits and heaters on the sand. Crisp seasonal pies, salads and spritzes while boats drift past.","tip":"Reserve on weekends. Dogs welcome outside.","url":"https://www.barbocce.com"},{"name":"Blue Bottle, Ferry Building","kind":"coffee","lat":37.79612,"lon":-122.39399,"blurb":"Blue Bottle's flagship kiosk inside the Ferry Building, four minutes from the Hyatt. A New Orleans iced or a pour-over on the bayside benches.","tip":"Opens 6:30am. Lines peak around 8:30.","url":"https://bluebottlecoffee.com"},{"name":"Hog Island Oyster Co.","kind":"eat","lat":37.79596,"lon":-122.39342,"blurb":"Tomales Bay oysters, clam chowder and grilled cheese at a marble bar facing the Bay Bridge. The best sit-down lunch near QCon.","tip":"Get there at opening (11:30) or after 2 to skip the line.","url":"https://hogislandoysters.com"},{"name":"Ferry Plaza Farmers Market","kind":"gem","lat":37.79532,"lon":-122.3936,"blurb":"CUESA's market outside the Ferry Building: Northern California produce, mushrooms, citrus and ready-to-eat stalls. The cook in the pair will want to browse.","tip":"Tue and Thu 10am–2pm, Sat 8–2. Easy on a QCon lunch break.","url":"https://cuesa.org"},{"name":"Boichik Bagels","kind":"eat","lat":37.79146,"lon":-122.39937,"blurb":"New Jersey-style bagels with a big following. Try the pumperthing or lox and schmear, six minutes' walk from the Hyatt.","tip":"Opens 6:30am, closes 1:30pm. Order ahead online.","url":""},{"name":"Tadich Grill","kind":"eat","lat":37.79344,"lon":-122.39945,"blurb":"Open since 1849 and often called California's oldest restaurant. White-jacketed waiters, a long wooden counter, cioppino and petrale sole.","tip":"Mon–Fri 11–9. Counter seats usually open without a reservation.","url":"https://www.tadichgrill.com"},{"name":"House of Prime Rib","kind":"eat","lat":37.79343,"lon":-122.42273,"blurb":"A 1949 institution where prime rib is carved tableside from silver carts and the salad is spun at the table. A once-per-trip splurge.","tip":"Reservations fill weeks out, so book now. Dinner only.","url":"https://www.houseofprimerib.net"},{"name":"Tony's Pizza Napoletana","kind":"eat","lat":37.80038,"lon":-122.40905,"blurb":"Tony Gemignani's North Beach pizzeria with ovens for Neapolitan, New York, Detroit, Roman and coal-fired styles. The wood-fired Margherita is limited to a small daily count.","tip":"Opens at noon and the line forms before then.","url":"https://www.tonyspizzanapoletana.com"},{"name":"Golden Boy Pizza","kind":"eat","lat":37.79976,"lon":-122.40809,"blurb":"Thick focaccia-style Sicilian squares since 1978. Get the clam-and-garlic. Cheap, fast, and a block from Tony's.","tip":"Counter only. Eat it in Washington Square.","url":"https://www.goldenboypizza.com"},{"name":"City Lights Booksellers","kind":"gem","lat":37.79763,"lon":-122.40662,"blurb":"Lawrence Ferlinghetti's 1953 Beat bookstore and the publisher of 'Howl'. A poetry room upstairs and three floors of unusual, carefully chosen titles.","tip":"Open 10am–10pm, so it works after a North Beach dinner.","url":"https://citylights.com"},{"name":"Vesuvio Cafe","kind":"drink","lat":37.79749,"lon":-122.40645,"blurb":"A 1948 Beat-era bar across Jack Kerouac Alley from City Lights, with a stained-glass mezzanine and decades of ephemera on the walls.","tip":"Grab a mezzanine seat by the window.","url":"https://www.vesuvio.com"},{"name":"Caffe Trieste","kind":"coffee","lat":37.79864,"lon":-122.40731,"blurb":"Opened in 1956 and said to be the first espresso house on the West Coast; Coppola reportedly wrote much of The Godfather here.","tip":"Open 7am–10pm. Bring some cash.","url":"https://www.caffetrieste.com"},{"name":"Liguria Bakery","kind":"eat","lat":37.80153,"lon":-122.40927,"blurb":"A family bakery on Washington Square since 1911 that makes only focaccia, wrapped in white paper and tied with string.","tip":"Tue–Sat 7am to noon or sellout. Morning only.","url":""},{"name":"Fortune Cookie Factory","kind":"gem","lat":37.79572,"lon":-122.40734,"blurb":"A one-room shop in Ross Alley where cookies are folded by hand off a small press. You can have custom fortunes baked in.","tip":"Open 9am–7pm. Small cash; they ask a fee for photos.","url":""},{"name":"The Buena Vista","kind":"drink","lat":37.80653,"lon":-122.42072,"blurb":"Where Irish coffee arrived in the US in 1952. Bartenders build a dozen at a time in a row of stemmed glasses, three minutes from the hotel.","tip":"Opens 8am weekends. Mornings and late evenings are calmer.","url":"https://www.thebuenavista.com"},{"name":"Saint Frank Coffee","kind":"coffee","lat":37.79848,"lon":-122.42208,"blurb":"The best specialty coffee within reach of the hotel: direct-trade beans and careful pour-overs in a bright Polk St cafe. Try the flight.","tip":"Open 7am–6pm. Seats fill with laptops, so take it to go.","url":"https://www.saintfrankcoffee.com"},{"name":"Square Pie Guys","kind":"eat","lat":37.80629,"lon":-122.42268,"blurb":"Crispy-edged Detroit-style pizza near Ghirardelli Square. An easy, good-value dinner on nights you skip North Beach.","tip":"Order at the kiosk. Open until 10:30pm Fri–Sat.","url":"https://www.squarepieguys.com"},{"name":"USS Pampanito","kind":"gem","lat":37.80999,"lon":-122.41644,"blurb":"A WWII submarine you walk through bow to stern, moored next to Musée Mécanique. Torpedo rooms, bunks and the engine room.","tip":"Open 10am–6pm, about $25. Single-file inside, so go early.","url":""},{"name":"Swan Oyster Depot","kind":"eat","lat":37.79083,"lon":-122.42096,"blurb":"A 1912 seafood counter with about 18 stools. Sicilian sashimi, cracked Dungeness crab, oysters, and banter that's half the experience.","tip":"Mon–Sat 8am–2:30pm. Arrive at opening. Long known as cash only.","url":""},{"name":"Emporium Arcade Bar","kind":"drink","lat":37.77534,"lon":-122.43766,"blurb":"Three levels of pinball, Mortal Kombat, Time Crisis and skee-ball inside the restored 1926 Harding Theater, with a full bar. The gamer night out.","tip":"21+. $10 buys 40 tokens. Opens 4pm weekdays.","url":"https://www.emporiumsf.com"},{"name":"Real Guitars","kind":"gem","lat":37.77341,"lon":-122.41749,"blurb":"A long-running shop of vintage and used guitars, basses and amps, curated with no junk. Staff let you plug in and play.","tip":"Mon–Sat 11–5. Tucked on an alley off Mission near 11th St.","url":"https://www.realguitars.com"}];
+'use strict';
+/* Operation Fog City — trip globe built on the God's Eye View stack. */
+
+const C = window.Cesium;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs = {}, kids = []) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null && v !== false) n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of [].concat(kids)) if (c != null) n.append(c);
+  return n;
+};
+
+/* ───────────────────────── Trip ───────────────────────── */
+const HOTEL = { lat: 37.8063, lon: -122.4170 };
+const HYATT = { lat: 37.7946, lon: -122.3954 };
+const AVIS = { lat: 37.8069, lon: -122.4201 };
+const ORIGIN = { code: 'CMH', lat: 39.998, lon: -82.8919 };
+const SFO = { code: 'SFO', lat: 37.6152, lon: -122.3900 };
+const LANDING_UTC = Date.UTC(2026, 10, 14, 17, 30); // 9:30 AM PST, Sat Nov 14
+
+const DAYS = [
+  { id: 'sat', dw: 'SAT', dn: 14, tag: 'Coast', out: true,
+    title: 'The city & the coast', eyebrow: 'Saturday · West side · Rideshare',
+    sub: 'Arrive, drop bags, then Presidio art, the Lands End trail and Sutro Baths for sunset.',
+    stops: [
+      { t: '9:30–11:30 AM', n: 'Wheels down → Kimpton Alton', lat: SFO.lat, lon: SFO.lon, range: 9000, d: 'Land at SFO, collect bags, rideshare to the hotel and leave luggage at the front desk before check-in.', also: HOTEL },
+      { t: '11:30 AM', n: "Quick lunch at the Wharf", lat: 37.8080, lon: -122.4177, range: 900, d: 'Something simple near the hotel. Keep it short to save the afternoon light.' },
+      { t: '12:15 PM', n: 'Palace of Fine Arts', lat: 37.8029, lon: -122.4484, must: true, range: 700, d: 'The rotunda, colonnades and lagoon, built for the 1915 Panama-Pacific Exposition. Outdoor architecture rather than a museum.' },
+      { t: '1:05 PM', n: 'Yoda Fountain', lat: 37.7986, lon: -122.4497, must: true, range: 450, d: 'The bronze Yoda at Lucasfilm\'s One Letterman campus in the Presidio. Outdoors and open on weekends.' },
+      { t: '1:35 PM', n: "Lovers' Lane + Wood Line", lat: 37.7931, lon: -122.4485, must: true, range: 650, d: "Walk part of the Presidio's oldest footpath to Andy Goldsworthy's Wood Line, eucalyptus trunks laid in a long curving line through the grove. Prioritize Wood Line over finishing the lane." },
+      { leg: true, t: '2:20 PM', n: 'Rideshare west to Lands End Lookout' },
+      { t: '2:50 PM', n: 'Lands End Coastal Trail', lat: 37.7838, lon: -122.5081, must: true, range: 1500, d: 'Out-and-back toward Mile Rock for cypress, Pacific and Golden Gate views. Stairs and uneven ground. Turn around in time for the baths.' },
+      { t: '3:55 PM', n: 'Sutro Baths + sunset', lat: 37.7804, lon: -122.5137, must: true, range: 700, d: 'Ruins of an 1896 bathhouse that once held seven pools. Sunset is about 4:58. Stay off the rocks and away from the surf.' },
+      { t: '6:30 PM', n: 'Dinner: North Beach or the Wharf', lat: 37.8008, lon: -122.4101, flex: true, range: 900, d: 'Check in and freshen up, then North Beach for dinner. Pier 39 and Ghirardelli Square are easy add-ons near the hotel.' },
+    ] },
+  { id: 'sun', dw: 'SUN', dn: 15, tag: 'Redwoods', out: true,
+    title: 'Redwood road trip', eyebrow: 'Sunday · Marin County · Rental car',
+    sub: 'Across the Golden Gate to the old-growth redwoods, the Pacific cliffs and Sausalito, then the classic bridge views.',
+    stops: [
+      { t: '7:30 AM', n: 'Pick up the rental car', lat: AVIS.lat, lon: AVIS.lon, range: 700, d: 'Avis at Anchorage Square, 500 Beach St, a short walk from the hotel. Leave luggage and laptops at the hotel.' },
+      { leg: true, t: '8:00 AM', n: 'North across the Golden Gate Bridge' },
+      { t: '9:00 AM', n: 'Muir Woods', lat: 37.8916, lon: -122.5716, must: true, range: 2200, d: 'Main Trail along Redwood Creek through coast redwoods, some over 1,000 years old. About 90 minutes. Timed parking reservation required, and there\'s no signal.' },
+      { t: '11:15 AM', n: 'Muir Beach Overlook', lat: 37.8622, lon: -122.5866, must: true, range: 1200, d: 'Cliff-top WWII lookout over the Pacific. Windy. Stay behind the rails.' },
+      { t: '12:30 PM', n: 'Sausalito waterfront + lunch', lat: 37.8596, lon: -122.4848, range: 1000, d: 'Harbor walk on Bridgeway. Bar Bocce does pizza on the sand.' },
+      { t: '2:00 PM', n: 'Battery Spencer', lat: 37.8277, lon: -122.4836, must: true, range: 1300, d: 'The classic elevated shot of the Golden Gate Bridge from the Marin Headlands. Parking is tight; allow extra time.' },
+      { t: '3:00 PM', n: 'Bridge Welcome Center', lat: 37.8077, lon: -122.4752, must: true, range: 1100, d: 'Drive south across the bridge, see the exhibits and walk a stretch of the span if the weather allows.' },
+      { t: '4:15 PM', n: 'Return the car + dinner', lat: AVIS.lat, lon: AVIS.lon, range: 800, d: 'Refuel, return the car to Avis during business hours, then an easy dinner before QCon.' },
+    ] },
+  { id: 'mon', dw: 'MON', dn: 16, tag: 'QCon',
+    title: 'QCon begins', eyebrow: 'Monday · Conference · Evening out',
+    sub: 'Keynotes and sessions at the Hyatt Regency, then Italian in North Beach.',
+    stops: [
+      { t: '7:15 AM', n: 'F-line streetcar to the Embarcadero', lat: 37.8077, lon: -122.4146, range: 900, d: 'The historic F Market & Wharves line runs from near the hotel along the waterfront. Badge pickup opens at 7:15.' },
+      { t: '9 AM–7 PM', n: 'QCon day 1', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'Keynote, sessions and the 6–7 PM social. On the agenda: The Harness Is the New Operating System, and a software-factory efficiency talk.' },
+      { t: '7:15 PM', n: 'North Beach dinner', lat: 37.8008, lon: -122.4101, range: 800, d: 'Italian food and a walk around Washington Square. Waymo or Uber back.' },
+    ] },
+  { id: 'tue', dw: 'TUE', dn: 17, tag: 'QCon',
+    title: 'Conference & Chinatown', eyebrow: 'Tuesday · Conference · Evening out',
+    sub: 'Day two at QCon, then dinner on Grant Avenue and a cable car if they\'re running.',
+    stops: [
+      { t: 'All day', n: 'QCon day 2', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'AI systems, staff-plus engineering and distributed systems tracks.' },
+      { t: '7:15 PM', n: 'Chinatown + cable cars', lat: 37.7908, lon: -122.4058, range: 700, d: 'In through the Dragon Gate and up Grant Avenue for dinner, then a cable car ride. The Cable Car Museum is better in daylight.' },
+    ] },
+  { id: 'wed', dw: 'WED', dn: 18, tag: 'QCon',
+    title: 'QCon finale', eyebrow: 'Wednesday · Conference · Evening out',
+    sub: 'Last main conference day, then a pier full of antique arcade machines.',
+    stops: [
+      { t: 'All day', n: 'QCon day 3', lat: HYATT.lat, lon: HYATT.lon, must: true, range: 800, d: 'Architecting for agents and engineering the developer experience.' },
+      { t: '7:00 PM', n: 'Musée Mécanique', lat: 37.8094, lon: -122.4159, flex: true, range: 500, d: 'A free hall of coin-operated games and automatons on Pier 45, some over 100 years old. Bring quarters. Get there before it closes.' },
+    ] },
+  { id: 'thu', dw: 'THU', dn: 19, tag: 'Flex',
+    title: 'The flexible day', eyebrow: 'Thursday · Conditional · Evening event',
+    sub: 'Alcatraz if the dock reopens, or a training workshop. Either way, the Exploratorium after dark.',
+    stops: [
+      { t: '9:30 AM', n: 'Alcatraz, if reopened', lat: 37.8267, lon: -122.4230, flex: true, range: 1400, d: 'Ferries leave from Pier 33. The operator expects to reopen on Nov 19 after dock repairs, but it isn\'t guaranteed. Allow 3–4 hours.' },
+      { t: '9 AM–4 PM', n: 'Or: QCon training', lat: HYATT.lat, lon: HYATT.lon, flex: true, range: 800, d: 'Workshops on agent SDKs, Claude Code and Codex, and developer productivity. Skip Alcatraz if you\'re enrolled.' },
+      { t: '6–10 PM', n: 'Exploratorium After Dark: Glow', lat: 37.8017, lon: -122.3973, must: true, range: 600, d: 'Adults-only night at the science museum on Pier 15, with interactive exhibits and art made with light. Reserve ahead.' },
+    ] },
+  { id: 'fri', dw: 'FRI', dn: 20, tag: 'Wrap',
+    title: 'Closing out the trip', eyebrow: 'Friday · Flexible · Check the flight',
+    sub: 'Training or a free city day, then two hours on the Bay at dusk.',
+    stops: [
+      { t: '9 AM–4 PM', n: 'Training or a free day', lat: HYATT.lat, lon: HYATT.lon, flex: true, range: 900, d: 'Friday workshop if enrolled. Otherwise the waterfront, the Cable Car Museum, or anything you missed.' },
+      { t: '5:30 PM', n: 'City Lights Cruise', lat: 37.8087, lon: -122.4148, must: true, range: 1600, d: 'Red and White Fleet, Pier 43½. Two hours on the Bay with the skyline and bridges lit. Book once the flight time is settled.' },
+    ] },
+];
+DAYS.forEach((d, di) => {
+  let n = 0;
+  d.stops.forEach((s, si) => {
+    s.day = di; s.idx = si; s.id = `${d.id}-${si}`;
+    if (!s.leg) s.num = ++n;
+  });
+});
+const DATE_OF = (di) => new Date(Date.UTC(2026, 10, 14 + di, 20));
+
+/* ───────────────────────── Geo helpers ───────────────────────── */
+const R = 6371008.8;
+function haversine(a, b) {
+  const p1 = (a.lat * Math.PI) / 180, p2 = (b.lat * Math.PI) / 180;
+  const dp = p2 - p1, dl = ((b.lon - a.lon) * Math.PI) / 180;
+  const h = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const walkMin = (m) => Math.max(1, Math.round((m * 1.3) / 80));
+function distLabel(m) {
+  const w = walkMin(m);
+  if (w <= 25) return `${w} min walk`;
+  const mi = m / 1609.34;
+  return `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi`;
+}
+function dms(v, pos, neg) {
+  const a = Math.abs(v), d = Math.floor(a), mf = (a - d) * 60, m = Math.floor(mf), s = Math.round((mf - m) * 60);
+  const ss = s === 60 ? 59 : s;
+  return `${d}°${String(m).padStart(2, '0')}′${String(ss).padStart(2, '0')}″${v >= 0 ? pos : neg}`;
+}
+function mgrsOf(lat, lon) {
+  try {
+    const raw = window.mgrs.forward([lon, lat], 4);
+    const m = raw.match(/^(\d{1,2}[A-Z])([A-Z]{2})(\d{4})(\d{4})$/);
+    return m ? `${m[1]} ${m[2]} ${m[3]} ${m[4]}` : raw;
+  } catch { return '—'; }
+}
+// NOAA sunrise/sunset (minutes past local midnight, PST = UTC-8)
+function sunTimes(date, lat, lon) {
+  const rad = Math.PI / 180;
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const n = Math.round(jd - 2451545.0 + 0.0008);
+  const Js = n - lon / 360;
+  const M = (357.5291 + 0.98560028 * Js) % 360;
+  const Cc = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
+  const L = (M + Cc + 180 + 102.9372) % 360;
+  const Jt = 2451545.0 + Js + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * L * rad);
+  const dec = Math.asin(Math.sin(L * rad) * Math.sin(23.4397 * rad));
+  const cosw = (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * Math.sin(dec)) / (Math.cos(lat * rad) * Math.cos(dec));
+  const w = Math.acos(cosw) / rad;
+  const toLocal = (j) => { const ms = (j - 2440587.5) * 86400000; const d = new Date(ms - 8 * 3600000); return d.getUTCHours() * 60 + d.getUTCMinutes(); };
+  return { rise: toLocal(Jt - w / 360), set: toLocal(Jt + w / 360) };
+}
+const hm = (min) => { let h = Math.floor(min / 60), m = min % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(m).padStart(2, '0')} ${ap}`; };
+
+/* ───────────────────────── Places ───────────────────────── */
+const KIND = {
+  eat: { label: 'Eat', plural: 'Eats' },
+  coffee: { label: 'Coffee', plural: 'Coffee' },
+  drink: { label: 'Drinks', plural: 'Drinks' },
+  gem: { label: 'Hidden gem', plural: 'Hidden gems' },
+};
+const STOPS = DAYS.flatMap((d) => d.stops.filter((s) => !s.leg));
+const slug = (t) => t.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+PLACES.forEach((p) => {
+  p.id = slug(p.name);
+  let best = null;
+  for (const s of STOPS) {
+    const dm = haversine(p, s);
+    if (!best || dm < best.m) best = { s, m: dm };
+  }
+  p.near = best;
+  p.fromHotel = haversine(p, HOTEL);
+});
+const PHOTOS = {"sat-0":{"src":"photos/s1.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/San_Francisco_International_Airport_aerial_view%2C_Sept._2026_-_03.jpg/800px-San_Francisco_International_Airport_aerial_view%2C_Sept._2026_-_03.jpg","page":"https://commons.wikimedia.org/wiki/File:San_Francisco_International_Airport_aerial_view,_Sept._2026_-_03.jpg","author":"SounderBruce","license":"CC BY-SA 4.0"},"sat-1":{"src":"photos/s2.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Fisherman%27s_Wharf%2C_San_Francisco_2012.JPG/800px-Fisherman%27s_Wharf%2C_San_Francisco_2012.JPG","page":"https://commons.wikimedia.org/wiki/File:Fisherman%27s_Wharf,_San_Francisco_2012.JPG","author":"Michael Rivera","license":"CC BY-SA 3.0"},"sat-2":{"src":"photos/s3.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Palace_of_Fine_Arts_%2816794p%29.jpg/800px-Palace_of_Fine_Arts_%2816794p%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Palace_of_Fine_Arts_(16794p).jpg","author":"Rhododendrites","license":"CC BY-SA 4.0"},"sat-4":{"src":"photos/s5.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Wood_Line_by_Andy_Goldsworthy_-_Presidio%2C_San_Francisco%2C_CA.jpg/800px-Wood_Line_by_Andy_Goldsworthy_-_Presidio%2C_San_Francisco%2C_CA.jpg","page":"https://commons.wikimedia.org/wiki/File:Wood_Line_by_Andy_Goldsworthy_-_Presidio,_San_Francisco,_CA.jpg","author":"Daderot","license":"CC0"},"sat-6":{"src":"photos/s6.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Coastal_Trail_and_Golden_Gate_Bridge%2C_April_2019.JPG/800px-Coastal_Trail_and_Golden_Gate_Bridge%2C_April_2019.JPG","page":"https://commons.wikimedia.org/wiki/File:Coastal_Trail_and_Golden_Gate_Bridge,_April_2019.JPG","author":"Pi.1415926535","license":"CC BY-SA 3.0"},"sat-7":{"src":"photos/s7.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Sutro_Baths%2C_Richmond_District%2C_San_Francisco.jpg/800px-Sutro_Baths%2C_Richmond_District%2C_San_Francisco.jpg","page":"https://commons.wikimedia.org/wiki/File:Sutro_Baths,_Richmond_District,_San_Francisco.jpg","author":"Frank Schulenburg","license":"CC BY-SA 4.0"},"sat-8":{"src":"photos/s8.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Saints_Peter_and_Paul_Catholic_Church_from_Washington_Square_-_San_Francisco%2C_CA_-_DSC02640.jpg/800px-Saints_Peter_and_Paul_Catholic_Church_from_Washington_Square_-_San_Francisco%2C_CA_-_DSC02640.jpg","page":"https://commons.wikimedia.org/wiki/File:Saints_Peter_and_Paul_Catholic_Church_from_Washington_Square_-_San_Francisco,_CA_-_DSC02640.jpg","author":"Daderot","license":"CC0"},"sun-0":{"src":"photos/s2.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Fisherman%27s_Wharf%2C_San_Francisco_2012.JPG/800px-Fisherman%27s_Wharf%2C_San_Francisco_2012.JPG","page":"https://commons.wikimedia.org/wiki/File:Fisherman%27s_Wharf,_San_Francisco_2012.JPG","author":"Michael Rivera","license":"CC BY-SA 3.0"},"sun-2":{"src":"photos/s9.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Muir_Woods_National_Monument_%2847879029461%29.jpg/800px-Muir_Woods_National_Monument_%2847879029461%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Muir_Woods_National_Monument_(47879029461).jpg","author":"Matthew Dillon","license":"CC BY 2.0"},"sun-3":{"src":"photos/s10.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Muir_Beach_Overlook.jpg/800px-Muir_Beach_Overlook.jpg","page":"https://commons.wikimedia.org/wiki/File:Muir_Beach_Overlook.jpg","author":"Frank Schulenburg","license":"CC BY-SA 3.0"},"sun-4":{"src":"photos/s11.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Sausalito.jpg/800px-Sausalito.jpg","page":"https://commons.wikimedia.org/wiki/File:Sausalito.jpg","author":"Squirrel 22","license":"Public domain"},"sun-5":{"src":"photos/s12.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Golden_Gate_Bridge_-_Battery_Spencer_%2828903971656%29.jpg/800px-Golden_Gate_Bridge_-_Battery_Spencer_%2828903971656%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_-_Battery_Spencer_(28903971656).jpg","author":"Tony Webster","license":"CC BY-SA 2.0"},"sun-6":{"src":"photos/s13.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Golden_Gate_Bridge_as_seen_from_Battery_East.jpg/800px-Golden_Gate_Bridge_as_seen_from_Battery_East.jpg","page":"https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_as_seen_from_Battery_East.jpg","author":"Frank Schulenburg","license":"CC BY-SA 4.0"},"sun-7":{"src":"photos/s2.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Fisherman%27s_Wharf%2C_San_Francisco_2012.JPG/800px-Fisherman%27s_Wharf%2C_San_Francisco_2012.JPG","page":"https://commons.wikimedia.org/wiki/File:Fisherman%27s_Wharf,_San_Francisco_2012.JPG","author":"Michael Rivera","license":"CC BY-SA 3.0"},"mon-0":{"src":"photos/s15.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/F_Line_Car_1057.jpg/800px-F_Line_Car_1057.jpg","page":"https://commons.wikimedia.org/wiki/File:F_Line_Car_1057.jpg","author":"Chris6d","license":"CC BY-SA 4.0"},"mon-1":{"src":"photos/s14.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg/800px-Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg","page":"https://commons.wikimedia.org/wiki/File:Hyatt_Regency_Embarcadero_Atrium,_San_Francisco,_US.jpg","author":"Dale Cruse","license":"CC BY 2.0"},"mon-2":{"src":"photos/s8.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Saints_Peter_and_Paul_Catholic_Church_from_Washington_Square_-_San_Francisco%2C_CA_-_DSC02640.jpg/800px-Saints_Peter_and_Paul_Catholic_Church_from_Washington_Square_-_San_Francisco%2C_CA_-_DSC02640.jpg","page":"https://commons.wikimedia.org/wiki/File:Saints_Peter_and_Paul_Catholic_Church_from_Washington_Square_-_San_Francisco,_CA_-_DSC02640.jpg","author":"Daderot","license":"CC0"},"tue-0":{"src":"photos/s14.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg/800px-Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg","page":"https://commons.wikimedia.org/wiki/File:Hyatt_Regency_Embarcadero_Atrium,_San_Francisco,_US.jpg","author":"Dale Cruse","license":"CC BY 2.0"},"tue-1":{"src":"photos/s16.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/1_chinatown_san_francisco_arch_gateway.JPG/800px-1_chinatown_san_francisco_arch_gateway.JPG","page":"https://commons.wikimedia.org/wiki/File:1_chinatown_san_francisco_arch_gateway.JPG","author":"chensiyuan","license":"CC BY-SA 4.0"},"wed-0":{"src":"photos/s14.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg/800px-Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg","page":"https://commons.wikimedia.org/wiki/File:Hyatt_Regency_Embarcadero_Atrium,_San_Francisco,_US.jpg","author":"Dale Cruse","license":"CC BY 2.0"},"wed-1":{"src":"photos/s17.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Mus%C3%A9e_M%C3%A9canique_003.JPG/800px-Mus%C3%A9e_M%C3%A9canique_003.JPG","page":"https://commons.wikimedia.org/wiki/File:Mus%C3%A9e_M%C3%A9canique_003.JPG","author":"Piotrus","license":"CC BY-SA 3.0"},"thu-0":{"src":"photos/s18.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Alcatraz_2021.jpg/800px-Alcatraz_2021.jpg","page":"https://commons.wikimedia.org/wiki/File:Alcatraz_2021.jpg","author":"Chris6d","license":"CC BY-SA 4.0"},"thu-1":{"src":"photos/s14.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg/800px-Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg","page":"https://commons.wikimedia.org/wiki/File:Hyatt_Regency_Embarcadero_Atrium,_San_Francisco,_US.jpg","author":"Dale Cruse","license":"CC BY 2.0"},"thu-2":{"src":"photos/s19.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/3/32/Main_Entrance_to_the_Exploratorium_at_Pier_15.jpg","page":"https://commons.wikimedia.org/wiki/File:Main_Entrance_to_the_Exploratorium_at_Pier_15.jpg","author":"Amy Snyder","license":"CC BY-SA 3.0"},"fri-0":{"src":"photos/s14.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg/800px-Hyatt_Regency_Embarcadero_Atrium%2C_San_Francisco%2C_US.jpg","page":"https://commons.wikimedia.org/wiki/File:Hyatt_Regency_Embarcadero_Atrium,_San_Francisco,_US.jpg","author":"Dale Cruse","license":"CC BY 2.0"},"fri-1":{"src":"photos/s20.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Red_%26_White_Fleet_Harbor_Queen_coming_into_Pier_45.JPG/800px-Red_%26_White_Fleet_Harbor_Queen_coming_into_Pier_45.JPG","page":"https://commons.wikimedia.org/wiki/File:Red_%26_White_Fleet_Harbor_Queen_coming_into_Pier_45.JPG","author":"BrokenSphere","license":"CC BY-SA 4.0"},"the-wave-organ":{"src":"photos/p1.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/San_Francisco_Wave_Organ.jpg/800px-San_Francisco_Wave_Organ.jpg","page":"https://commons.wikimedia.org/wiki/File:San_Francisco_Wave_Organ.jpg","author":"Frank Schulenburg","license":"CC BY-SA 4.0"},"equator-coffees-fort-mason":{"src":"photos/p2.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fort_Mason_in_2025_18.jpg/800px-Fort_Mason_in_2025_18.jpg","page":"https://commons.wikimedia.org/wiki/File:Fort_Mason_in_2025_18.jpg","author":"Cmichel67","license":"CC BY-SA 4.0"},"presidio-tunnel-tops":{"src":"photos/p3.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Presidio_Tunnel_Tops_aerial_%28cropped%29.jpg/800px-Presidio_Tunnel_Tops_aerial_%28cropped%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Presidio_Tunnel_Tops_aerial_(cropped).jpg","author":"Dicklyon","license":"CC BY-SA 4.0"},"spire-goldsworthy":{"src":"photos/p5.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Spire_by_Andy_Goldsworthy_-_Presidio%2C_San_Francisco%2C_CA.jpg/800px-Spire_by_Andy_Goldsworthy_-_Presidio%2C_San_Francisco%2C_CA.jpg","page":"https://commons.wikimedia.org/wiki/File:Spire_by_Andy_Goldsworthy_-_Presidio,_San_Francisco,_CA.jpg","author":"Daderot","license":"CC0"},"presidio-golf-course":{"src":"photos/p6.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Presidio_Golf_Course_-_San_Francisco%2C_CA.jpg/800px-Presidio_Golf_Course_-_San_Francisco%2C_CA.jpg","page":"https://commons.wikimedia.org/wiki/File:Presidio_Golf_Course_-_San_Francisco,_CA.jpg","author":"Daderot","license":"CC0"},"fort-point":{"src":"photos/p7.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/San_Francisco_%28CA%2C_USA%29%2C_Fort_Point_--_2022_--_3039.jpg/800px-San_Francisco_%28CA%2C_USA%29%2C_Fort_Point_--_2022_--_3039.jpg","page":"https://commons.wikimedia.org/wiki/File:San_Francisco_(CA,_USA),_Fort_Point_--_2022_--_3039.jpg","author":"Dietmar Rabich","license":"CC BY-SA 4.0"},"sutro-heights-park":{"src":"photos/p8.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/SutroHeightsPark.jpg/800px-SutroHeightsPark.jpg","page":"https://commons.wikimedia.org/wiki/File:SutroHeightsPark.jpg","author":"AMB","license":"CC BY-SA 3.0"},"lincoln-park-golf-course":{"src":"photos/p9.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/San_Francisco_-_Golden_Gate_Bridge_from_the_Lincoln_Park_Golf_Course_%281165795937%29.jpg/800px-San_Francisco_-_Golden_Gate_Bridge_from_the_Lincoln_Park_Golf_Course_%281165795937%29.jpg","page":"https://commons.wikimedia.org/wiki/File:San_Francisco_-_Golden_Gate_Bridge_from_the_Lincoln_Park_Golf_Course_(1165795937).jpg","author":"David Ohmer","license":"CC BY 2.0"},"green-apple-books":{"src":"photos/p10.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/9/95/Greenapplebooks.jpg","page":"https://commons.wikimedia.org/wiki/File:Greenapplebooks.jpg","author":"Wikimedia Commons","license":"Public domain"},"bison-paddock":{"src":"photos/p11.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Bison_Paddock_%2814888361261%29.jpg/800px-Bison_Paddock_%2814888361261%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Bison_Paddock_(14888361261).jpg","author":"Laika ac","license":"CC BY-SA 2.0"},"beach-chalet":{"src":"photos/p12.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Beach_Chalet_%28San_Francisco%29.JPG/800px-Beach_Chalet_%28San_Francisco%29.JPG","page":"https://commons.wikimedia.org/wiki/File:Beach_Chalet_(San_Francisco).JPG","author":"Sanfranman59","license":"CC BY-SA 3.0"},"bay-model":{"src":"photos/p14.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Bay_Model_-_Sausalito_%283024074520%29.jpg/800px-Bay_Model_-_Sausalito_%283024074520%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Bay_Model_-_Sausalito_(3024074520).jpg","author":"Cary Bass-Deschenes","license":"CC BY-SA 2.0"},"waldo-point-houseboats":{"src":"photos/p15.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Sausalito_Houseboats%2C_Waldo_Point%2C_in_2017.jpg/800px-Sausalito_Houseboats%2C_Waldo_Point%2C_in_2017.jpg","page":"https://commons.wikimedia.org/wiki/File:Sausalito_Houseboats,_Waldo_Point,_in_2017.jpg","author":"Frank Schulenburg","license":"CC BY-SA 4.0"},"blue-bottle-ferry-building":{"src":"photos/p16.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg/800px-Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg","page":"https://commons.wikimedia.org/wiki/File:Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg","author":"Daniel Lu","license":"CC BY-SA 4.0"},"hog-island-oyster-co":{"src":"photos/p16.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg/800px-Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg","page":"https://commons.wikimedia.org/wiki/File:Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg","author":"Daniel Lu","license":"CC BY-SA 4.0"},"ferry-plaza-farmers-market":{"src":"photos/p16.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg/800px-Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg","page":"https://commons.wikimedia.org/wiki/File:Ferry_Building_San_Francisco_from_Hyatt_Regency_with_R-Evolution_and_Bay_Bridge_2026_dllu.jpg","author":"Daniel Lu","license":"CC BY-SA 4.0"},"tadich-grill":{"src":"photos/p17.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Tadich_Grill%2C_San_Francisco%2C_California_-_Stierch.jpg/800px-Tadich_Grill%2C_San_Francisco%2C_California_-_Stierch.jpg","page":"https://commons.wikimedia.org/wiki/File:Tadich_Grill,_San_Francisco,_California_-_Stierch.jpg","author":"Sarah Stierch","license":"CC BY 4.0"},"city-lights-booksellers":{"src":"photos/p19.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/City_Lights_Booksellers.jpg/800px-City_Lights_Booksellers.jpg","page":"https://commons.wikimedia.org/wiki/File:City_Lights_Booksellers.jpg","author":"Coolcaesar","license":"CC BY-SA 4.0"},"vesuvio-cafe":{"src":"photos/p20.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Vesuvio_Cafe%2C_San_Francisco_2023-07-20.jpg/800px-Vesuvio_Cafe%2C_San_Francisco_2023-07-20.jpg","page":"https://commons.wikimedia.org/wiki/File:Vesuvio_Cafe,_San_Francisco_2023-07-20.jpg","author":"The wub","license":"CC BY-SA 4.0"},"caffe-trieste":{"src":"photos/p21.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Caffe_trieste_%287793058868%29.jpg/800px-Caffe_trieste_%287793058868%29.jpg","page":"https://commons.wikimedia.org/wiki/File:Caffe_trieste_(7793058868).jpg","author":"Christopher Michel","license":"CC BY 2.0"},"fortune-cookie-factory":{"src":"photos/p22.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/San_Francisco_Chinatown_%2815794436155%29.jpg/800px-San_Francisco_Chinatown_%2815794436155%29.jpg","page":"https://commons.wikimedia.org/wiki/File:San_Francisco_Chinatown_(15794436155).jpg","author":"Kārlis Dambrāns","license":"CC BY 2.0"},"the-buena-vista":{"src":"photos/p23.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Buena_Vista_Cafe%2C_exterior%2C_San_Francisco_%28May_2025%29_03.jpg/800px-Buena_Vista_Cafe%2C_exterior%2C_San_Francisco_%28May_2025%29_03.jpg","page":"https://commons.wikimedia.org/wiki/File:Buena_Vista_Cafe,_exterior,_San_Francisco_(May_2025)_03.jpg","author":"BriefEdits","license":"CC BY-SA 4.0"},"uss-pampanito":{"src":"photos/p24.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/USS_Pampanito.jpg/800px-USS_Pampanito.jpg","page":"https://commons.wikimedia.org/wiki/File:USS_Pampanito.jpg","author":"Slyronit","license":"CC BY-SA 4.0"},"swan-oyster-depot":{"src":"photos/p25.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Swan_Oyster_Depot_-_Outside.jpg/800px-Swan_Oyster_Depot_-_Outside.jpg","page":"https://commons.wikimedia.org/wiki/File:Swan_Oyster_Depot_-_Outside.jpg","author":"Rafaelquint99","license":"CC BY-SA 4.0"},"emporium-arcade-bar":{"src":"photos/p26.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Harding_Theater_-_Emporium%2C_June_2022_-1.jpg/800px-Harding_Theater_-_Emporium%2C_June_2022_-1.jpg","page":"https://commons.wikimedia.org/wiki/File:Harding_Theater_-_Emporium,_June_2022_-1.jpg","author":"HaeB","license":"CC BY-SA 4.0"},"tony-s-pizza-napoletana":{"src":"photos/p27.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Tonys_Pizza_exterior.jpg/800px-Tonys_Pizza_exterior.jpg","page":"https://commons.wikimedia.org/wiki/File:Tonys_Pizza_exterior.jpg","author":"9yz","license":"CC BY-SA 4.0"},"liguria-bakery":{"src":"photos/p28.jpg","remote":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Liguria_Bakery%2C_San_Francisco.jpg/800px-Liguria_Bakery%2C_San_Francisco.jpg","page":"https://commons.wikimedia.org/wiki/File:Liguria_Bakery,_San_Francisco.jpg","author":"Karen Neoh","license":"CC BY 2.0"}};
+function photoFor(id) { return PHOTOS[id] || null; }
+function figure(cls, ph, alt) {
+  const img = el('img', { src: ph.src, alt, loading: 'lazy', decoding: 'async' });
+  const fig = el('figure', { class: cls }, [img, el('figcaption', {}, [ph.page ? el('a', { href: ph.page, target: '_blank', rel: 'noopener', text: `${ph.author} · ${ph.license}` }) : `${ph.author} · ${ph.license}`])]);
+  img.addEventListener('error', () => { if (ph.remote && !img.dataset.r) { img.dataset.r = '1'; img.src = ph.remote; } else fig.remove(); });
+  return fig;
+}
+function nearbyFor(stop) {
+  const lim = stop.range > 1800 ? 6000 : 1700;
+  return PLACES.map((p) => ({ p, m: haversine(p, stop) }))
+    .filter((x) => x.m <= lim)
+    .sort((a, b) => a.m - b.m)
+    .slice(0, 5);
+}
+
+/* ───────────────────────── City pack ───────────────────────── */
+let CITY = null;
+let DEM = null;
+function u2ll(x, z) { const o = CITY.origin; return [o.lon0 + x / o.kx, o.lat0 - z / o.ky]; }
+function demHeight(lon, lat) {
+  if (!DEM) return 0;
+  const [S, W, N, E] = DEM.bbox;
+  if (lat <= S || lat >= N || lon <= W || lon >= E) return 0;
+  const fx = ((lon - W) / (E - W)) * (DEM.nx - 1), fy = ((lat - S) / (N - S)) * (DEM.ny - 1);
+  const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+  const g = (x, y) => DEM.z[y * DEM.nx + x];
+  return g(x0, y0) * (1 - tx) * (1 - ty) + g(x0 + 1, y0) * tx * (1 - ty) + g(x0, y0 + 1) * (1 - tx) * ty + g(x0 + 1, y0 + 1) * tx * ty;
+}
+function b64bytes(s) { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+
+/* ───────────────────────── Viewer ───────────────────────── */
+let widget, scene, camera;
+let satellite = false;
+const layers = {};
+const prims = {};
+
+async function boot() {
+  if (!C) throw new Error('The 3D engine did not load.');
+  const credits = $('#credits');
+  widget = new C.CesiumWidget('globe', {
+    baseLayer: false,
+    terrainProvider: new C.EllipsoidTerrainProvider(),
+    skyBox: new C.SkyBox({ sources: {
+      positiveX: 'sky/milkyway_px.webp', negativeX: 'sky/milkyway_nx.webp',
+      positiveY: 'sky/milkyway_py.webp', negativeY: 'sky/milkyway_ny.webp',
+      positiveZ: 'sky/milkyway_pz.webp', negativeZ: 'sky/milkyway_nz.webp' } }),
+    skyAtmosphere: new C.SkyAtmosphere(),
+    scene3DOnly: true,
+    creditContainer: credits,
+    msaaSamples: 4,
+  });
+  scene = widget.scene; camera = scene.camera;
+  scene.globe.baseColor = C.Color.fromCssColorString('#b9c8d1');
+  scene.globe.showGroundAtmosphere = false;
+  scene.globe.enableLighting = false;
+  scene.globe.depthTestAgainstTerrain = false;
+  scene.globe.maximumScreenSpaceError = 1.5;
+  scene.highDynamicRange = false;
+  scene.fog.enabled = true; scene.fog.density = 0.00012;
+  scene.sun.show = false; scene.moon.show = false;
+  scene.skyAtmosphere.atmosphereLightIntensity = 14;
+  widget.clock.currentTime = C.JulianDate.fromDate(new Date(Date.UTC(2026, 10, 14, 21, 0)));
+  widget.clock.shouldAnimate = false;
+  const sscc = scene.screenSpaceCameraController;
+  sscc.minimumZoomDistance = 120;
+  sscc.maximumZoomDistance = 2.5e7;
+
+  // Natural Earth ships inside Cesium: the whole-planet view works with no network.
+  layers.earth = C.ImageryLayer.fromProviderAsync(
+    C.TileMapServiceImageryProvider.fromUrl(C.buildModuleUrl('Assets/Textures/NaturalEarthII')));
+  scene.imageryLayers.add(layers.earth);
+
+  // Opening shot: high over North America with the flight in.
+  camera.setView({ destination: C.Cartesian3.fromDegrees(-101, 30, 9.5e6) });
+  drawFlight();
+
+  const res = await fetch('data/city.json');
+  if (!res.ok) throw new Error(`city data ${res.status}`);
+  CITY = await res.json();
+  const e = CITY.elev;
+  DEM = { nx: e.nx, ny: e.ny, bbox: e.bbox, z: new Int16Array(b64bytes(e.b64).buffer) };
+
+  scene.terrainProvider = makeDemTerrain();
+  await addSchematicImagery();
+  buildBridge();
+  buildTall();
+  buildHoods();
+  setTimeout(buildBuildings, 60);
+
+  scene.preRender.addEventListener(fadeEarth);
+  scene.postRender.addEventListener(updateOverlay);
+  probeSatellite();
+}
+
+function fadeEarth() {
+  if (satellite) return;
+  const h = camera.positionCartographic.height;
+  const a = C.Math.clamp((h - 90000) / 400000, 0, 1);
+  if (layers.earth) layers.earth.alpha = a;
+}
+
+/* DEM terrain from the SRTM grid (land-masked so the bay stays flat). */
+function makeDemTerrain() {
+  const W = 32, H = 32;
+  return new C.CustomHeightmapTerrainProvider({
+    width: W, height: H,
+    callback(x, y, level) {
+      const out = new Float32Array(W * H);
+      if (level < 7) return out;
+      const r = this.tilingScheme.tileXYToRectangle(x, y, level);
+      const w = C.Math.toDegrees(r.west), ea = C.Math.toDegrees(r.east);
+      const s = C.Math.toDegrees(r.south), n = C.Math.toDegrees(r.north);
+      const [S, Wb, N, E] = DEM.bbox;
+      if (ea < Wb || w > E || n < S || s > N) return out;
+      for (let j = 0; j < H; j++) {
+        const lat = n - ((n - s) * j) / (H - 1);
+        for (let i = 0; i < W; i++) out[j * W + i] = demHeight(w + ((ea - w) * i) / (W - 1), lat);
+      }
+      return out;
+    },
+  });
+}
+
+/* Paint the schematic map: land, parks, piers, roads and a hillshade, into two
+   rasters (Bay Area overview + detailed city) used as imagery layers. */
+const MAP = {
+  water: '#b9c8d1', land: '#f1f1ec', landFar: '#e9eae4', park: '#d4e0cc', forest: '#c3d4bc',
+  golf: '#d9e5cf', scrub: '#dfe3d2', pier: '#e2e4e2', road: '#ffffff', roadCase: '#d6d9d6', coast: '#9fb1bd',
+};
+function paintRaster(rect, w, h, draw) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const g = cv.getContext('2d');
+  const [S, W, N, E] = rect;
+  const px = (lon, lat) => [((lon - W) / (E - W)) * w, ((N - lat) / (N - S)) * h];
+  draw(g, px, w, h);
+  return cv;
+}
+function pathRings(g, px, rings) {
+  g.beginPath();
+  for (const ring of rings) {
+    ring.forEach(([x, z], i) => { const [lo, la] = u2ll(x, z); const [a, b] = px(lo, la); i ? g.lineTo(a, b) : g.moveTo(a, b); });
+    g.closePath();
+  }
+}
+async function addSchematicImagery() {
+  const city = CITY;
+  const regionRect = [37.45, -122.85, 38.15, -122.05];
+  const regionCv = paintRaster(regionRect, 2048, 2048, (g, px, w, h) => {
+    g.fillStyle = MAP.water; g.fillRect(0, 0, w, h);
+    g.fillStyle = MAP.landFar;
+    for (const poly of city.region) { pathRings(g, px, poly); g.fill('evenodd'); }
+    g.fillStyle = MAP.land;
+    for (const poly of city.land) { pathRings(g, px, poly); g.fill('evenodd'); }
+  });
+  const [S, W, N, E] = city.origin.bbox;
+  const cityCv = paintRaster([S, W, N, E], 4096, 3640, (g, px, w, h) => {
+    g.fillStyle = MAP.water; g.fillRect(0, 0, w, h);
+    g.fillStyle = MAP.landFar;
+    for (const poly of city.region) { pathRings(g, px, poly); g.fill('evenodd'); }
+    g.fillStyle = MAP.land;
+    for (const poly of city.land) { pathRings(g, px, poly); g.fill('evenodd'); }
+    const greens = { park: MAP.park, golf: MAP.golf, scrub: MAP.scrub, forest: MAP.forest };
+    for (const [k, col] of Object.entries(greens)) {
+      g.fillStyle = col;
+      for (const poly of city.green[k] || []) { pathRings(g, px, poly); g.fill('evenodd'); }
+    }
+    // hillshade (multiply) from the DEM, light from the northwest
+    const hs = document.createElement('canvas'); hs.width = DEM.nx; hs.height = DEM.ny;
+    const hg = hs.getContext('2d'); const img = hg.createImageData(DEM.nx, DEM.ny);
+    const cell = ((E - W) * 111320 * Math.cos((37.77 * Math.PI) / 180)) / (DEM.nx - 1);
+    const az = (315 * Math.PI) / 180, alt = (40 * Math.PI) / 180;
+    for (let j = 0; j < DEM.ny; j++) for (let i = 0; i < DEM.nx; i++) {
+      const z = (x, y) => DEM.z[Math.min(DEM.ny - 1, Math.max(0, y)) * DEM.nx + Math.min(DEM.nx - 1, Math.max(0, x))];
+      const dzdx = (z(i + 1, j) - z(i - 1, j)) / (2 * cell) * 2.2;
+      const dzdy = (z(i, j + 1) - z(i, j - 1)) / (2 * cell) * 2.2;
+      const slope = Math.atan(Math.hypot(dzdx, dzdy));
+      const aspect = Math.atan2(dzdy, -dzdx);
+      let sh = Math.sin(alt) * Math.cos(slope) + Math.cos(alt) * Math.sin(slope) * Math.cos(az - aspect);
+      sh = Math.max(0, Math.min(1, sh));
+      const v = Math.round(255 * (0.62 + 0.38 * sh / Math.sin(alt) * 0.95));
+      const k = ((DEM.ny - 1 - j) * DEM.nx + i) * 4;
+      const land = DEM.z[j * DEM.nx + i] > 0;
+      img.data[k] = img.data[k + 1] = img.data[k + 2] = land ? Math.min(255, v) : 255;
+      img.data[k + 3] = 255;
+    }
+    hg.putImageData(img, 0, 0);
+    g.save(); g.globalCompositeOperation = 'multiply'; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(hs, 0, 0, w, h); g.restore();
+    g.fillStyle = MAP.pier;
+    for (const poly of city.piers) { pathRings(g, px, poly); g.fill('evenodd'); }
+    g.strokeStyle = MAP.coast; g.lineWidth = 1.6;
+    for (const poly of city.land) { pathRings(g, px, poly); g.stroke(); }
+    // roads, minor first; class 0 = motorway … 3 = tertiary
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const widths = [6.5, 5, 3.6, 2.6];
+    for (const pass of ['case', 'fill']) {
+      for (let cls = 3; cls >= 0; cls--) {
+        g.strokeStyle = pass === 'case' ? MAP.roadCase : MAP.road;
+        g.lineWidth = widths[cls] + (pass === 'case' ? 1.6 : 0);
+        g.beginPath();
+        for (const [c, pts] of city.roads) {
+          if (c !== cls) continue;
+          pts.forEach(([x, z], i) => { const [lo, la] = u2ll(x, z); const [a, b] = px(lo, la); i ? g.lineTo(a, b) : g.moveTo(a, b); });
+        }
+        g.stroke();
+      }
+    }
+  });
+  const toUrl = (cv) => new Promise((ok) => cv.toBlob((b) => ok(URL.createObjectURL(b)), 'image/png'));
+  const [ru, cu] = await Promise.all([toUrl(regionCv), toUrl(cityCv)]);
+  const rect = (r) => C.Rectangle.fromDegrees(r[1], r[0], r[3], r[2]);
+  layers.region = C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(ru, { rectangle: rect(regionRect) }));
+  layers.city = C.ImageryLayer.fromProviderAsync(C.SingleTileImageryProvider.fromUrl(cu, { rectangle: rect([S, W, N, E]) }));
+  scene.imageryLayers.add(layers.region);
+  scene.imageryLayers.add(layers.city);
+}
+
+/* ───── Buildings: 140k OSM footprints as one batched mesh per city block ───── */
+function buildBuildings() {
+  const bytes = b64bytes(CITY.bld_b64);
+  const dv = new DataView(bytes.buffer);
+  const n = CITY.bld_n;
+  const o = CITY.origin;
+  const GRID = 12;
+  const chunks = Array.from({ length: GRID * GRID }, (_, k) => ({ ids: [], gx: k % GRID, gz: Math.floor(k / GRID), prim: null }));
+  for (let i = 0; i < n; i++) {
+    const x = dv.getInt16(i * 8, true), z = dv.getInt16(i * 8 + 2, true);
+    const gx = Math.min(GRID - 1, Math.max(0, Math.floor(((x / 100) / 176 + 0.5) * GRID)));
+    const gz = Math.min(GRID - 1, Math.max(0, Math.floor(((z / 100) / 156 + 0.5) * GRID)));
+    chunks[gz * GRID + gx].ids.push(i);
+  }
+  const live = chunks.filter((c) => c.ids.length);
+  for (const c of live) {
+    const x = ((c.gx + 0.5) / GRID - 0.5) * 176, z = ((c.gz + 0.5) / GRID - 0.5) * 156;
+    const [lon, lat] = u2ll(x, z);
+    c.center = C.Cartesian3.fromDegrees(lon, lat, 40);
+  }
+  prims.buildings = new C.PrimitiveCollection();
+  scene.primitives.add(prims.buildings);
+  const RAD = Math.PI / 180;
+  const carto = new C.Cartographic(), cart = new C.Cartesian3(), ell = C.Ellipsoid.WGS84;
+  const make = (c) => {
+    const ids = c.ids;
+    const pos = new Float64Array(ids.length * 12 * 3);
+    const col = new Uint8Array(ids.length * 12 * 4);
+    const idx = new Uint32Array(ids.length * 30);
+    let v = 0, ii = 0;
+    for (const i of ids) {
+      const off = i * 8;
+      const cx = dv.getInt16(off, true), cz = dv.getInt16(off + 2, true);
+      const w = bytes[off + 4] / 2, d = bytes[off + 5] / 2, ang = bytes[off + 6] * RAD;
+      const h = Math.max(4, bytes[off + 7] / 2);
+      const ca = Math.cos(ang), sa = Math.sin(ang);
+      let base = Infinity;
+      const ll = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([a, b]) => {
+        const x = cx + a * ca - b * sa, z = cz + a * sa + b * ca;
+        const lon = o.lon0 + x / 100 / o.kx, lat = o.lat0 - z / 100 / o.ky;
+        base = Math.min(base, demHeight(lon, lat));
+        return [lon, lat];
+      });
+      base -= 1.5;
+      const top = base + 1.5 + h;
+      const tint = 0.97 + (((i * 2654435761) >>> 0) % 997) / 997 * 0.05;
+      const hh = Math.min(1, h / 40);
+      const shades = [[192, 199, 207], [230 + 12 * hh, 234 + 10 * hh, 238 + 8 * hh], [252, 252, 251]];
+      const v0 = v;
+      for (let ring = 0; ring < 3; ring++) {
+        const alt = ring === 0 ? base : top;
+        const sh = shades[ring];
+        for (let k = 0; k < 4; k++) {
+          carto.longitude = ll[k][0] * RAD; carto.latitude = ll[k][1] * RAD; carto.height = alt;
+          ell.cartographicToCartesian(carto, cart);
+          pos[v * 3] = cart.x; pos[v * 3 + 1] = cart.y; pos[v * 3 + 2] = cart.z;
+          col[v * 4] = Math.min(255, sh[0] * tint); col[v * 4 + 1] = Math.min(255, sh[1] * tint); col[v * 4 + 2] = Math.min(255, sh[2] * tint); col[v * 4 + 3] = 255;
+          v++;
+        }
+      }
+      for (let k = 0; k < 4; k++) {
+        const k2 = (k + 1) % 4;
+        idx[ii++] = v0 + k; idx[ii++] = v0 + k2; idx[ii++] = v0 + 4 + k2;
+        idx[ii++] = v0 + k; idx[ii++] = v0 + 4 + k2; idx[ii++] = v0 + 4 + k;
+      }
+      idx[ii++] = v0 + 8; idx[ii++] = v0 + 9; idx[ii++] = v0 + 10;
+      idx[ii++] = v0 + 8; idx[ii++] = v0 + 10; idx[ii++] = v0 + 11;
+    }
+    const geometry = new C.Geometry({
+      attributes: {
+        position: new C.GeometryAttribute({ componentDatatype: C.ComponentDatatype.DOUBLE, componentsPerAttribute: 3, values: pos }),
+        color: new C.GeometryAttribute({ componentDatatype: C.ComponentDatatype.UNSIGNED_BYTE, componentsPerAttribute: 4, normalize: true, values: col }),
+      },
+      indices: idx, primitiveType: C.PrimitiveType.TRIANGLES, boundingSphere: C.BoundingSphere.fromVertices(pos),
+    });
+    c.prim = prims.buildings.add(new C.Primitive({
+      geometryInstances: new C.GeometryInstance({ geometry }),
+      appearance: new C.PerInstanceColorAppearance({ flat: true, translucent: false }),
+      asynchronous: false, allowPicking: false, compressVertices: false,
+    }));
+  };
+  // Build and show city blocks lazily, only near the camera.
+  const NEAR = 7500;
+  scene.preRender.addEventListener(() => {
+    const on = state.layers.buildings && !satellite;
+    let built = 0;
+    for (const c of live) {
+      const near = on && C.Cartesian3.distance(camera.positionWC, c.center) < NEAR;
+      if (near && !c.prim && built < 1) { make(c); built++; }
+      if (c.prim) c.prim.show = near;
+    }
+  });
+}
+
+function buildTall() {
+  const instances = [];
+  for (const [, hgt, rings] of CITY.tall) {
+    for (const poly of rings) {
+      const outer = poly[0].map(([x, z]) => u2ll(x, z));
+      if (outer.length < 4) continue;
+      let base = Infinity;
+      for (const [lo, la] of outer) base = Math.min(base, demHeight(lo, la));
+      base -= 1;
+      try {
+        instances.push(new C.GeometryInstance({
+          geometry: new C.PolygonGeometry({
+            polygonHierarchy: new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(outer.flat()),
+              poly.slice(1).map((r) => new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(r.map(([x, z]) => u2ll(x, z)).flat())))),
+            height: base, extrudedHeight: base + hgt,
+            vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT,
+          }),
+          attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(C.Color.fromCssColorString('#e8ecef')) },
+        }));
+      } catch { /* skip degenerate rings */ }
+    }
+  }
+  prims.tall = scene.primitives.add(new C.Primitive({
+    geometryInstances: instances,
+    appearance: new C.PerInstanceColorAppearance({ translucent: false, closed: true }),
+    allowPicking: false,
+  }));
+}
+
+/* The Golden Gate Bridge, modeled from its real dimensions in International Orange. */
+function buildBridge() {
+  const S = { lat: 37.81156, lon: -122.47751 }, Nn = { lat: 37.82294, lon: -122.47873 };
+  const SA = { lat: 37.80795, lon: -122.47707 }, NA = { lat: 37.83020, lon: -122.47942 };
+  const orange = C.Color.fromCssColorString('#c0362c');
+  const deckH = 67, towerH = 227;
+  const lerp = (a, b, t) => ({ lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t });
+  const heading = Math.atan2((Nn.lon - S.lon) * Math.cos(37.82 * Math.PI / 180), Nn.lat - S.lat);
+  const inst = [];
+  // deck
+  inst.push(new C.GeometryInstance({
+    geometry: new C.CorridorGeometry({
+      positions: C.Cartesian3.fromDegreesArray([SA.lon, SA.lat, NA.lon, NA.lat]),
+      width: 27, height: deckH - 4, extrudedHeight: deckH, vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT,
+    }),
+    attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(orange) },
+  }));
+  // towers: two legs plus three portal struts each
+  for (const T of [S, Nn]) {
+    const center = C.Cartesian3.fromDegrees(T.lon, T.lat, 0);
+    const enu = C.Transforms.headingPitchRollToFixedFrame(center, new C.HeadingPitchRoll(heading - Math.PI / 2, 0, 0));
+    const box = (x, y, z, dx, dy, dz) => new C.GeometryInstance({
+      geometry: C.BoxGeometry.fromDimensions({ dimensions: new C.Cartesian3(dx, dy, dz), vertexFormat: C.PerInstanceColorAppearance.VERTEX_FORMAT }),
+      modelMatrix: C.Matrix4.multiplyByTranslation(enu, new C.Cartesian3(x, y, z), new C.Matrix4()),
+      attributes: { color: C.ColorGeometryInstanceAttribute.fromColor(orange) },
+    });
+    // in this frame +x = along bridge heading? headingPitchRoll frame: x = forward(east rotated) — use both axes symmetric
+    inst.push(box(0, 15, towerH / 2, 10, 10, towerH));
+    inst.push(box(0, -15, towerH / 2, 10, 10, towerH));
+    for (const zz of [deckH + 40, 150, towerH - 8]) inst.push(box(0, 0, zz, 8, 30, 9));
+    inst.push(box(0, 0, 8, 40, 60, 16));
+  }
+  prims.bridge = scene.primitives.add(new C.Primitive({
+    geometryInstances: inst,
+    appearance: new C.PerInstanceColorAppearance({ translucent: false, closed: true }),
+    allowPicking: false,
+  }));
+  // main cables and suspenders
+  const pc = new C.PolylineCollection();
+  const mat = C.Material.fromType('Color', { color: orange });
+  const span = (a, b, h0, h1, sag, side, nSeg) => {
+    const pts = [];
+    for (let i = 0; i <= nSeg; i++) {
+      const t = i / nSeg;
+      const p = lerp(a, b, t);
+      const hh = h0 + (h1 - h0) * t - sag * 4 * t * (1 - t);
+      const off = side * 13.5 / 111320;
+      const dl = off * Math.cos(heading) / Math.cos(37.82 * Math.PI / 180);
+      const dla = -off * Math.sin(heading);
+      pts.push(C.Cartesian3.fromDegrees(p.lon + dl, p.lat + dla, hh));
+    }
+    return pts;
+  };
+  for (const side of [-1, 1]) {
+    const segs = [
+      span(SA, S, deckH + 2, towerH, 30, side, 20),
+      span(S, Nn, towerH, towerH, towerH - deckH - 6, side, 64),
+      span(Nn, NA, towerH, deckH + 2, 30, side, 20),
+    ];
+    for (const positions of segs) pc.add({ positions, width: 2.2, material: mat });
+    const main = segs[1];
+    for (let i = 2; i < main.length - 2; i += 2) {
+      const top = C.Cartographic.fromCartesian(main[i]);
+      pc.add({ positions: [main[i], C.Cartesian3.fromRadians(top.longitude, top.latitude, deckH)], width: 1, material: mat });
+    }
+  }
+  prims.cables = scene.primitives.add(pc);
+}
+
+function buildHoods() {
+  const pc = new C.PolylineCollection();
+  const mat = C.Material.fromType('PolylineDash', { color: C.Color.fromCssColorString('#12171b').withAlpha(0.35), dashLength: 12 });
+  for (const [, , rings] of CITY.hoods) {
+    for (const ring of rings) {
+      const pts = ring.map(([x, z]) => { const [lo, la] = u2ll(x, z); return C.Cartesian3.fromDegrees(lo, la, demHeight(lo, la) + 6); });
+      pc.add({ positions: pts, width: 1.4, material: mat });
+    }
+  }
+  prims.hoods = scene.primitives.add(pc);
+  prims.hoods.show = false;
+}
+
+/* Flight arc from home to SFO, and the per-day connector arcs. */
+function arcPoints(a, b, peak, n = 64, h0 = 0, h1 = 0) {
+  const g = new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(a.lon, a.lat), C.Cartographic.fromDegrees(b.lon, b.lat));
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n; const c = g.interpolateUsingFraction(t);
+    pts.push(C.Cartesian3.fromRadians(c.longitude, c.latitude, h0 + (h1 - h0) * t + peak * Math.sin(Math.PI * t)));
+  }
+  return pts;
+}
+function drawFlight() {
+  const pc = new C.PolylineCollection();
+  pc.add({ positions: arcPoints(ORIGIN, SFO, 420000, 128), width: 3,
+    material: C.Material.fromType('PolylineGlow', { color: C.Color.fromCssColorString('#ff6a52'), glowPower: 0.25, taperPower: 1 }) });
+  prims.flight = scene.primitives.add(pc);
+}
+function drawDayRoute(day) {
+  if (prims.route) scene.primitives.remove(prims.route);
+  const pc = new C.PolylineCollection();
+  const st = DAYS[day].stops.filter((s) => !s.leg);
+  const mat = C.Material.fromType('PolylineDash', { color: C.Color.fromCssColorString('#c0362c'), gapColor: C.Color.TRANSPARENT, dashLength: 14 });
+  for (let i = 1; i < st.length; i++) {
+    const a = st[i - 1], b = st[i];
+    if (a.lat === b.lat && a.lon === b.lon) continue;
+    const dm = haversine(a, b);
+    const ha = groundAt(a.lon, a.lat) + 25, hb = groundAt(b.lon, b.lat) + 25;
+    pc.add({ positions: arcPoints(a, b, Math.min(900, dm * 0.12), 48, ha, hb), width: 2.4, material: mat });
+  }
+  prims.route = scene.primitives.add(pc);
+  prims.route.show = state.layers.route;
+}
+const GEOID_SF = -32.3;
+function groundAt(lon, lat) {
+  if (!satellite) return demHeight(lon, lat);
+  const h = scene.globe.getHeight(C.Cartographic.fromDegrees(lon, lat));
+  return h === undefined ? GEOID_SF : h;
+}
+
+/* ───── Satellite link: Esri imagery + keyless terrain, exactly as God's Eye View
+   uses them. Inside the shared page these hosts are blocked, so we stay schematic. */
+const ESRI_URL = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer';
+const REEARTH_TERRAIN = 'https://terrain.reearth.land/cesium-mesh/ellipsoid';
+let satAvailable = false;
+function probeSatellite() {
+  const img = new Image();
+  let done = false;
+  const finish = (ok) => { if (done) return; done = true; satAvailable = ok; renderLinkChip(); renderLayerPanel(); };
+  img.onload = () => finish(true);
+  img.onerror = () => finish(false);
+  setTimeout(() => finish(false), 6000);
+  img.crossOrigin = 'anonymous';
+  img.src = `${ESRI_URL}/tile/12/1582/655`;
+}
+async function setSatellite(on) {
+  if (on === satellite) return;
+  satellite = on;
+  if (on) {
+    if (!layers.esri) {
+      layers.esri = C.ImageryLayer.fromProviderAsync(C.ArcGisMapServerImageryProvider.fromUrl(ESRI_URL, {
+        enablePickFeatures: false,
+        credit: 'Powered by Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+      }));
+      scene.imageryLayers.add(layers.esri);
+    }
+    layers.esri.show = true;
+    layers.earth.alpha = 1;
+    try { scene.terrainProvider = await C.CesiumTerrainProvider.fromUrl(REEARTH_TERRAIN); }
+    catch { scene.terrainProvider = new C.EllipsoidTerrainProvider(); }
+    const up = C.Cartesian3.normalize(C.Cartesian3.fromDegrees(-122.478, 37.818), new C.Cartesian3());
+    const shift = C.Matrix4.fromTranslation(C.Cartesian3.multiplyByScalar(up, GEOID_SF, new C.Cartesian3()));
+    prims.bridge.modelMatrix = shift; prims.cables.modelMatrix = shift;
+  } else {
+    if (layers.esri) layers.esri.show = false;
+    scene.terrainProvider = makeDemTerrain();
+    prims.bridge.modelMatrix = C.Matrix4.IDENTITY; prims.cables.modelMatrix = C.Matrix4.IDENTITY;
+  }
+  layers.city.show = layers.region.show = !on;
+  pins.forEach((p) => { p.h = null; });
+  drawDayRoute(state.day);
+  applyLayerVisibility();
+  renderLinkChip();
+}
+function renderLinkChip() {
+  const chip = $('#link');
+  const text = satellite ? 'SAT LINK · ESRI' : satAvailable ? 'SCHEMATIC · SAT READY' : 'SCHEMATIC · OSM';
+  setSplitFlapText(chip, text);
+  chip.classList.toggle('live', satellite);
+}
+
+/* ───────────────────────── Sensor looks (God's Eye View shaders) ───────────────────────── */
+const SENSORS = [
+  { id: 'day', label: 'Day', shader: null },
+  { id: 'story', label: 'Storybook', shader: animeShader },
+  { id: 'noir', label: 'Noir', shader: noirShader },
+  { id: 'nvg', label: 'NVG', shader: nightVisionShader, dark: true, pre: 0.42, set: { gain: 0.1, bloom: 0.15 } },
+  { id: 'flir', label: 'FLIR', shader: thermalShader, dark: true, pre: 0.62, set: { palette: 1, sensitivity: 0.9, mode: 0 } },
+  { id: 'crt', label: 'CRT', shader: retroShader, dark: true, set: { pixelation: 3 } },
+];
+let stage = null;
+const t0 = performance.now();
+function setSensor(id) {
+  const s = SENSORS.find((x) => x.id === id) || SENSORS[0];
+  if (stage) { scene.postProcessStages.remove(stage); stage = null; }
+  if (s.shader) {
+    const uniforms = { intensity: 1, time: () => (performance.now() - t0) / 1000 };
+    for (const [k, u] of Object.entries(s.shader.uniforms)) uniforms[k] = u.default;
+    Object.assign(uniforms, s.set || {});
+    let fs = s.shader.fragmentShader;
+    // The schematic map is far brighter than night imagery: dim the input for the intensifier.
+    if (s.pre) fs = fs.replace(/texture\(colorTexture,/g, `${s.pre.toFixed(2)} * texture(colorTexture,`);
+    stage = scene.postProcessStages.add(new C.PostProcessStage({ fragmentShader: fs, uniforms }));
+  }
+  document.querySelectorAll('#sensorSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === s.id)));
+  $('#stage').classList.toggle('sensor-dark', !!s.dark);
+  state.sensor = s.id;
+}
+
+/* ───────────────────────── Overlay pins ───────────────────────── */
+const pins = [];
+const labelsEl = $('#labels');
+function makePins() {
+  for (const s of STOPS) {
+    const b = el('button', { class: 'pin stop', 'aria-label': `${DAYS[s.day].dw} stop ${s.num}: ${s.n}`,
+      onclick: (e) => { e.stopPropagation(); selectStop(s.day, s.idx); } },
+    [el('span', { class: 'mk', text: String(s.num) }), el('span', { class: 'lb', text: s.n })]);
+    labelsEl.append(b);
+    pins.push({ type: 'stop', ref: s, node: b, lat: s.lat, lon: s.lon, h: null, w: 0 });
+  }
+  for (const p of PLACES) {
+    const b = el('button', { class: 'pin place', 'data-kind': p.kind, 'aria-label': `${KIND[p.kind].label}: ${p.name}`,
+      onclick: (e) => { e.stopPropagation(); openPlace(p); } },
+    [el('span', { class: 'mk' }), el('span', { class: 'lb', text: p.name })]);
+    labelsEl.append(b);
+    pins.push({ type: 'place', ref: p, node: b, lat: p.lat, lon: p.lon, h: null, w: 0 });
+  }
+  for (const [name, [x, z]] of CITY.hoods) {
+    const [lon, lat] = u2ll(x, z);
+    const n = el('div', { class: 'hood', text: name, 'aria-hidden': 'true' });
+    labelsEl.append(n);
+    pins.push({ type: 'hood', node: n, lat, lon, h: null, w: 0 });
+  }
+}
+const scratch = new C.Cartesian3();
+const win = new C.Cartesian2();
+let occluder = null;
+function pinVisible(p) {
+  if (p.type === 'stop') return p.ref.day === state.day || (state.layers.route && camera.positionCartographic.height < 6000);
+  if (p.type === 'hood') return state.layers.hoods;
+  const k = p.ref.kind;
+  if (k === 'eat') return state.layers.eat;
+  if (k === 'coffee' || k === 'drink') return state.layers.coffee;
+  return state.layers.gem;
+}
+function updateOverlay() {
+  if (!CITY) return;
+  const camH = camera.positionCartographic.height;
+  occluder = new C.EllipsoidalOccluder(C.Ellipsoid.WGS84, camera.positionWC);
+  const W = scene.canvas.clientWidth, H = scene.canvas.clientHeight;
+  const taken = [];
+  const order = pins.slice().sort((a, b) => prio(b) - prio(a));
+  for (const p of order) {
+    const show = pinVisible(p) && camH < (p.type === 'stop' ? 4e6 : p.type === 'hood' ? 16000 : 26000);
+    if (!show) { if (!p.hidden) { p.node.style.display = 'none'; p.hidden = true; } continue; }
+    if (p.h === null) p.h = groundAt(p.lon, p.lat) + (p.type === 'hood' ? 40 : 8);
+    C.Cartesian3.fromDegrees(p.lon, p.lat, p.h, C.Ellipsoid.WGS84, scratch);
+    const sc = occluder.isPointVisible(scratch) ? C.SceneTransforms.worldToWindowCoordinates(scene, scratch, win) : undefined;
+    if (p.type !== 'hood' && !(p.type === 'stop' && p.ref.day === state.day) && C.Cartesian3.distance(camera.positionWC, scratch) > 3500 + camH * 2.5) {
+      if (!p.hidden) { p.node.style.display = 'none'; p.hidden = true; } continue;
+    }
+    if (!sc || sc.x < -40 || sc.y < -20 || sc.x > W + 40 || sc.y > H + 20) {
+      if (!p.hidden) { p.node.style.display = 'none'; p.hidden = true; } continue;
+    }
+    if (p.hidden) { p.node.style.display = ''; p.hidden = false; p.w = 0; }
+    const isSel = (p.type === 'stop' && state.stop === p.ref.id) || (p.type === 'place' && state.place === p.ref.id);
+    if (!p.w) p.w = p.node.offsetWidth || 120;
+    let x = sc.x, y = sc.y;
+    if (p.type === 'hood') { x -= p.w / 2; y -= 5; }
+    else { x -= p.type === 'stop' ? 10 : 5.5; y -= p.type === 'stop' ? 10 : 5.5; }
+    const rect = [x, y - 2, x + p.w, y + 22];
+    const collides = taken.some((r) => rect[0] < r[2] && rect[2] > r[0] && rect[1] < r[3] && rect[3] > r[1]);
+    const wantLabel = p.type === 'hood' || isSel || (p.type === 'stop' && p.ref.day === state.day && camH < 60000) || (p.type === 'place' && camH < 3500);
+    const label = wantLabel && (!collides || isSel);
+    if (p.type === 'hood' && !label) { p.node.style.display = 'none'; p.hidden = true; continue; }
+    if (label) taken.push(rect);
+    p.node.classList.toggle('nolabel', !label);
+    if (p.type !== 'hood') {
+      p.node.classList.toggle('sel', isSel);
+      if (p.type === 'place') p.node.classList.toggle('loved', loveCount(p.ref.id) > 0);
+      if (p.type === 'stop') p.node.classList.toggle('muted', p.ref.day !== state.day);
+      p.node.style.zIndex = isSel ? 30 : p.type === 'stop' ? (p.ref.day === state.day ? 20 : 5) : 10;
+    }
+    p.node.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+  }
+}
+function prio(p) {
+  if (p.type === 'stop') return (state.stop === p.ref.id ? 1000 : 0) + (p.ref.day === state.day ? 500 - p.ref.idx : 100);
+  if (p.type === 'place') return (state.place === p.ref.id ? 1000 : 0) + 200;
+  return 50;
+}
+
+/* ───────────────────────── HUD ───────────────────────── */
+function updateHud() {
+  if (!scene) return;
+  const c = camera.positionCartographic;
+  const ray = camera.getPickRay(new C.Cartesian2(scene.canvas.clientWidth / 2, scene.canvas.clientHeight / 2));
+  const hit = ray && (scene.globe.pick(ray, scene) || camera.pickEllipsoid(new C.Cartesian2(scene.canvas.clientWidth / 2, scene.canvas.clientHeight / 2)));
+  const t = hit ? C.Cartographic.fromCartesian(hit) : c;
+  const lat = C.Math.toDegrees(t.latitude), lon = C.Math.toDegrees(t.longitude);
+  $('#rLat').textContent = dms(lat, 'N', 'S');
+  $('#rLon').textContent = dms(lon, 'E', 'W');
+  $('#rMgrs').textContent = mgrsOf(lat, lon);
+  const alt = c.height;
+  $('#rAlt').textContent = alt > 10000 ? `${(alt / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} km` : `${Math.round(alt).toLocaleString('en-US')} m`;
+  $('#rHdg').textContent = `${String(Math.round(C.Math.toDegrees(camera.heading)) % 360).padStart(3, '0')}°`;
+}
+function updateClock() {
+  const now = new Date();
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  $('#sfclock').textContent = `SF ${f.format(now).toUpperCase()}`;
+  const ms = LANDING_UTC - now.getTime();
+  let txt;
+  if (ms > 0) {
+    const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    txt = `WHEELS DOWN T−${d}D ${String(h).padStart(2, '0')}H ${String(m).padStart(2, '0')}M`;
+  } else {
+    const day = Math.floor((now.getTime() - Date.UTC(2026, 10, 14, 8)) / 86400000) + 1;
+    txt = day <= 7 ? `IN THE FIELD · DAY ${day} OF 7` : 'OPERATION COMPLETE';
+  }
+  $('#countdown').textContent = txt;
+}
+
+/* ───────────────────────── Camera ───────────────────────── */
+let orbitOff = null;
+let flightToken = 0;
+function stopOrbit() {
+  if (orbitOff) { orbitOff(); orbitOff = null; camera.lookAtTransform(C.Matrix4.IDENTITY); }
+  $('#btnOrbit').setAttribute('aria-pressed', 'false');
+}
+function startOrbit(target, range, pitchDeg, speedDeg = 4) {
+  stopOrbit();
+  if (REDUCED) return;
+  let angle = camera.heading, last = performance.now();
+  orbitOff = scene.preRender.addEventListener(() => {
+    const now = performance.now(); angle += C.Math.toRadians(speedDeg) * ((now - last) / 1000); last = now;
+    camera.lookAt(target, new C.HeadingPitchRange(angle, C.Math.toRadians(pitchDeg), range));
+  });
+  $('#btnOrbit').setAttribute('aria-pressed', 'true');
+}
+function stopAll() { stopOrbit(); tour.cancel(); camera.cancelFlight(); }
+function flyToStop(s, { duration = 2.8, orbit = true } = {}) {
+  stopOrbit(); camera.cancelFlight();
+  const token = ++flightToken;
+  const h = groundAt(s.lon, s.lat);
+  const target = C.Cartesian3.fromDegrees(s.lon, s.lat, h);
+  const heading = C.Math.toRadians((s.num * 67 + s.day * 31) % 360);
+  const pitch = s.range > 3000 ? -50 : -32;
+  return new Promise((done) => {
+    camera.flyToBoundingSphere(new C.BoundingSphere(target, 1), {
+      offset: new C.HeadingPitchRange(heading, C.Math.toRadians(pitch), s.range),
+      duration: REDUCED ? 0 : duration,
+      maximumHeight: Math.max(4000, s.range * 4),
+      complete: () => { if (token === flightToken && orbit) startOrbit(target, s.range, pitch); done(true); },
+      cancel: () => done(false),
+    });
+  });
+}
+function flyToDay(di, duration = 2.6) {
+  stopOrbit(); camera.cancelFlight();
+  const st = DAYS[di].stops.filter((s) => !s.leg && !(di === 0 && s.idx === 0));
+  const pts = st.map((s) => C.Cartesian3.fromDegrees(s.lon, s.lat, groundAt(s.lon, s.lat)));
+  const bs = C.BoundingSphere.fromPoints(pts);
+  const r = Math.max(bs.radius * 3.1, 2600);
+  camera.flyToBoundingSphere(new C.BoundingSphere(bs.center, 1), {
+    offset: new C.HeadingPitchRange(C.Math.toRadians(-20), C.Math.toRadians(-52), r),
+    duration: REDUCED ? 0 : duration,
+  });
+}
+function flyHome(duration = 3.2) {
+  stopAll();
+  camera.flyTo({
+    destination: C.Cartesian3.fromDegrees(-122.44, 37.655, 16500),
+    orientation: { heading: C.Math.toRadians(-8), pitch: C.Math.toRadians(-38), roll: 0 },
+    duration: REDUCED ? 0 : duration,
+  });
+  setNow('OVERVIEW', 'SAN FRANCISCO + MARIN · 7 DAYS');
+}
+
+/* Tour: fly every stop of a day in order, orbiting each for a beat. */
+const tour = {
+  run: 0, active: false,
+  cancel() { if (this.active) { this.run++; this.active = false; renderPlay(); } },
+  async play(di) {
+    this.cancel();
+    const run = ++this.run; this.active = true; renderPlay();
+    const stops = DAYS[di].stops.filter((s) => !s.leg);
+    for (const s of stops) {
+      if (run !== this.run) return;
+      selectStop(di, s.idx, { fly: false, fromTour: true });
+      await flyToStop(s, { duration: 3.2 });
+      if (run !== this.run) return;
+      await new Promise((r) => setTimeout(r, REDUCED ? 2500 : 4200));
+    }
+    if (run === this.run) { this.active = false; renderPlay(); }
+  },
+};
+function renderPlay() {
+  const b = $('#btnPlay');
+  b.querySelector('span').textContent = tour.active ? 'Stop the flight' : 'Fly the day';
+  b.querySelector('svg').innerHTML = tour.active ? '<path d="M2 2h8v8H2z"/>' : '<path d="M2 1l9 5-9 5z"/>';
+}
+
+/* ───────────────────────── State + UI ───────────────────────── */
+const state = {
+  day: 0, stop: null, place: null, sensor: 'day', filter: 'all',
+  layers: { route: true, eat: true, coffee: true, gem: true, fog: true, hoods: false, buildings: true },
+};
+try { Object.assign(state.layers, JSON.parse(localStorage.getItem('fogcity.layers') || '{}')); } catch { /* storage unavailable */ }
+
+function setNow(key, text) {
+  $('#nowKey').textContent = key;
+  setSplitFlapText($('#nowText'), text.toUpperCase(), { maxTotalMs: 900 });
+}
+
+function renderBoard() {
+  const board = $('#board');
+  board.replaceChildren(...DAYS.map((d, i) => el('button', {
+    class: `day${d.out ? ' out' : ''}`, role: 'tab', id: `tab-${d.id}`,
+    'aria-selected': String(i === state.day), 'aria-controls': 'timeline',
+    onclick: () => selectDay(i),
+  }, [el('span', { class: 'dw', text: d.dw }), el('span', { class: 'dn', text: String(d.dn) }), el('span', { class: 'dt', text: d.tag })])));
+}
+
+function renderDay() {
+  const d = DAYS[state.day];
+  document.querySelectorAll('.day').forEach((b, i) => b.setAttribute('aria-selected', String(i === state.day)));
+  $('#dayEyebrow').textContent = d.eyebrow;
+  setSplitFlapText($('#dayTitle'), d.title.toUpperCase(), { maxTotalMs: 900 });
+  $('#daySub').textContent = d.sub;
+  const st = sunTimes(DATE_OF(state.day), 37.79, -122.44);
+  const meta = $('#dayMeta');
+  meta.replaceChildren(
+    el('span', { text: `NOV ${d.dn}` }),
+    el('span', { text: `SUNRISE ${hm(st.rise)}` }),
+    el('span', { text: `SUNSET ${hm(st.set)}` }),
+    el('span', { text: `${d.stops.filter((s) => !s.leg).length} STOPS` }),
+  );
+  renderTimeline();
+  renderPicks();
+}
+
+function renderTimeline() {
+  const d = DAYS[state.day];
+  const list = $('#timeline');
+  list.replaceChildren(...d.stops.map((s) => {
+    if (s.leg) {
+      return el('li', { class: 'stop leg' }, el('button', { disabled: true, tabindex: '-1' }, [
+        el('span', { class: 't', text: s.t }), el('span', { class: 'nm', text: s.n })]));
+    }
+    const sel = state.stop === s.id;
+    const li = el('li', { class: `stop${sel ? ' sel' : ''}`, id: `stop-${s.id}` });
+    li.append(el('button', { 'aria-expanded': String(sel), onclick: () => selectStop(s.day, s.idx) }, [
+      el('span', { class: 't' }, [el('span', { class: 'n', text: String(s.num) }), el('br'), s.t]),
+      el('span', {}, [
+        el('span', { class: 'nm' }, [el('span', { text: s.n }), s.must ? el('em', { text: 'Must-see' }) : s.flex ? el('em', { class: 'flex', text: 'Flexible' }) : null]),
+        el('span', { class: 'ds', text: s.d }),
+        sel && photoFor(s.id) ? figure('stopphoto', photoFor(s.id), s.n) : null,
+      ]),
+    ]));
+    if (sel) {
+      const near = nearbyFor(s);
+      if (near.length) {
+        li.append(el('div', { class: 'near' }, [
+          el('div', { class: 'h', text: 'Within reach' }),
+          ...near.map(({ p, m }) => el('button', { onclick: () => openPlace(p) }, [
+            el('span', { class: `glyph ${p.kind}`, 'aria-hidden': 'true' }),
+            el('span', { class: 'pn', text: p.name }),
+            el('span', { class: 'pd', text: distLabel(m) }),
+          ])),
+        ]));
+      }
+    }
+    return li;
+  }));
+}
+
+function renderFilters() {
+  const f = $('#filters');
+  const opts = [['all', 'All'], ['eat', 'Eats'], ['coffee', 'Coffee & drinks'], ['gem', 'Hidden gems']];
+  f.replaceChildren(...opts.map(([id, label]) => el('button', {
+    'aria-pressed': String(state.filter === id), onclick: () => { state.filter = id; renderFilters(); renderPicks(); },
+  }, [id === 'all' ? null : el('span', { class: `glyph ${id}`, 'aria-hidden': 'true' }), label])));
+}
+function renderPicks() {
+  const d = state.day;
+  const list = PLACES.filter((p) => p.near.s.day === d || (d >= 2 && d <= 5 && p.near.s.day >= 2 && p.near.s.day <= 6))
+    .filter((p) => state.filter === 'all' || p.kind === state.filter || (state.filter === 'coffee' && p.kind === 'drink'))
+    .sort((a, b) => a.near.m - b.near.m);
+  $('#pickCount').textContent = `${list.length} NEAR ${DAYS[d].dw}`;
+  const host = $('#picks');
+  if (!list.length) { host.replaceChildren(el('p', { class: 'sub', text: 'Nothing in this category near today’s stops.' })); return; }
+  host.replaceChildren(...list.map((p) => el('button', { onclick: () => openPlace(p) }, [
+    el('span', { class: `glyph ${p.kind}`, 'aria-hidden': 'true' }),
+    el('span', { class: 'pn', text: p.name }),
+    el('span', { class: 'pd' }, [loveCount(p.id) ? el('span', { class: 'loveflag', text: `♥ ${loveCount(p.id)}  ` }) : null, `${distLabel(p.near.m)} · ${p.near.s.n.split(/[:+(→]/)[0].trim()}`]),
+    el('span', { class: 'pb', text: p.blurb.split('. ')[0].replace(/\.$/, '') + '.' }),
+  ])));
+}
+
+const LAYER_DEFS = [
+  ['route', 'Our stops & route', 'stop'], ['eat', 'Eats', 'eat'], ['coffee', 'Coffee & drinks', 'coffee'],
+  ['gem', 'Hidden gems', 'gem'], ['fog', 'Karl the Fog', null], ['hoods', 'Neighborhoods', null], ['buildings', '3D buildings', null],
+];
+function renderLayerPanel() {
+  const host = $('#layers');
+  const counts = { route: STOPS.length, eat: PLACES.filter((p) => p.kind === 'eat').length, coffee: PLACES.filter((p) => p.kind === 'coffee' || p.kind === 'drink').length, gem: PLACES.filter((p) => p.kind === 'gem').length, hoods: CITY ? CITY.hoods.length : 41 };
+  const rows = LAYER_DEFS.map(([id, label, g]) => el('label', {}, [
+    el('input', { type: 'checkbox', id: `layer-${id}`, checked: state.layers[id], onchange: (e) => { state.layers[id] = e.target.checked; saveLayers(); applyLayerVisibility(); } }),
+    g ? el('span', { class: `glyph ${g}`, 'aria-hidden': 'true' }) : null,
+    label,
+    counts[id] ? el('span', { class: 'ct', text: String(counts[id]) }) : null,
+  ]));
+  if (satAvailable) {
+    rows.push(el('label', {}, [
+      el('input', { type: 'checkbox', id: 'layer-sat', checked: satellite, onchange: (e) => setSatellite(e.target.checked) }),
+      'Satellite imagery',
+    ]));
+  }
+  host.replaceChildren(...rows);
+}
+function saveLayers() { try { localStorage.setItem('fogcity.layers', JSON.stringify(state.layers)); } catch { /* ignore */ } }
+function applyLayerVisibility() {
+  if (prims.route) prims.route.show = state.layers.route;
+  if (prims.hoods) prims.hoods.show = state.layers.hoods && !satellite;
+  if (prims.tall) prims.tall.show = state.layers.buildings && !satellite;
+  if (scene && CITY && !!fogStage !== !!state.layers.fog) setFog(state.layers.fog);
+}
+
+function selectDay(i, { fly = true } = {}) {
+  if (i !== state.day) tour.cancel();
+  state.day = i; state.stop = null;
+  if (location.hash !== `#${DAYS[i].id}`) history.replaceState(null, '', `#${DAYS[i].id}`);
+  renderDay();
+  if (scene) {
+    drawDayRoute(i);
+    if (fly) flyToDay(i);
+  }
+  setNow(`${DAYS[i].dw} ${DAYS[i].dn} NOV`, DAYS[i].title);
+}
+function selectStop(di, si, { fly = true, fromTour = false } = {}) {
+  if (!fromTour) tour.cancel();
+  if (di !== state.day) { state.day = di; history.replaceState(null, '', `#${DAYS[di].id}`); renderDay(); drawDayRoute(di); }
+  const s = DAYS[di].stops[si];
+  state.stop = s.id;
+  closeCard();
+  renderTimeline();
+  setNow(`${DAYS[di].dw} · ${s.t}`, s.n);
+  const row = document.getElementById(`stop-${s.id}`);
+  if (row && !fromTour) row.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' });
+  if (fly && scene) flyToStop(s);
+}
+
+function openPlace(p) {
+  state.place = p.id;
+  const k = KIND[p.kind];
+  $('#cardKind').replaceChildren(el('span', { class: `glyph ${p.kind}`, 'aria-hidden': 'true' }), k.label);
+  $('#cardName').textContent = p.name;
+  $('#cardBlurb').textContent = p.blurb;
+  const tip = $('#cardTip'); tip.textContent = p.tip; tip.hidden = !p.tip;
+  const ns = p.near.s;
+  $('#cardMeta').textContent = `${DAYS[ns.day].dw} · ${distLabel(p.near.m)} from ${ns.n.split(/[:+(→]/)[0].trim()} · ${distLabel(p.fromHotel)} from the hotel`;
+  const links = [el('a', { href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${p.lat},${p.lon}`)}`, target: '_blank', rel: 'noopener', text: 'Open in Maps ↗' })];
+  if (p.url) links.push(el('a', { href: p.url, target: '_blank', rel: 'noopener', text: 'Website ↗' }));
+  $('#cardLinks').replaceChildren(...links);
+  const ph = photoFor(p.id), fig = $('#cardPhoto');
+  if (ph) {
+    fig.hidden = false;
+    const img = $('#cardImg'); img.alt = p.name; img.dataset.r = '';
+    img.onerror = () => { if (ph.remote && !img.dataset.r) { img.dataset.r = '1'; img.src = ph.remote; } else fig.hidden = true; };
+    img.src = ph.src;
+    const cr = $('#cardCredit'); cr.replaceChildren(ph.page ? el('a', { href: ph.page, target: '_blank', rel: 'noopener', text: `${ph.author} · ${ph.license}` }) : `${ph.author} · ${ph.license}`);
+  } else fig.hidden = true;
+  renderCardSocial();
+  $('#card').hidden = false;
+  if (scene) {
+    stopAll();
+    const h = groundAt(p.lon, p.lat);
+    camera.flyToBoundingSphere(new C.BoundingSphere(C.Cartesian3.fromDegrees(p.lon, p.lat, h), 1), {
+      offset: new C.HeadingPitchRange(camera.heading, C.Math.toRadians(-38), p.near.m > 3000 ? 1400 : 650),
+      duration: REDUCED ? 0 : 2,
+    });
+  }
+}
+function closeCard() { state.place = null; $('#card').hidden = true; }
+
+function renderSensors() {
+  const seg = $('#sensorSeg');
+  for (const s of SENSORS) seg.append(el('button', { 'data-id': s.id, 'aria-pressed': String(s.id === state.sensor), onclick: () => setSensor(s.id), text: s.label }));
+}
+
+
+/* ───────────────────────── Shared wishlist + checklist ─────────────────────────
+   Inside claude.ai the page uses the artifact's shared database, so Matt and Val
+   see each other's hearts and ticks. Anywhere else it falls back to this device. */
+const CHECKS = [
+  { id: 'parking', t: 'Reserve Muir Woods parking', s: 'Sunday Nov 15, aim for a 9:00 AM slot', url: 'https://gomuirwoods.com/' },
+  { id: 'rental', t: 'Reserve the Sunday rental car', s: 'Avis, 500 Beach St. Confirm return hours', url: 'https://www.avis.com/en/locations/nam/us/ca/san-francisco/fmw' },
+  { id: 'exploratorium', t: 'Book Exploratorium After Dark', s: 'Thursday Nov 19, Glow Opening, 6–10 PM', url: 'https://www.exploratorium.edu/visit/calendar/after-dark-glow-opening' },
+  { id: 'cruise', t: 'Book the City Lights Cruise', s: 'Friday 5:30 PM, once the flight time is set', url: 'https://www.redandwhite.com/schedule' },
+  { id: 'alcatraz', t: 'Check Alcatraz reopening', s: 'Nov 19 is only the expected date', url: 'https://alcatrazcitycruises.com/temporary-closure' },
+  { id: 'primerib', t: 'House of Prime Rib, if we want it', s: 'Reservations fill weeks out', url: 'https://www.houseofprimerib.net' },
+  { id: 'offline', t: 'Download trail maps + parking receipt', s: 'No cell signal at Muir Woods', url: 'https://www.nps.gov/muwo/planyourvisit/know-before-you-go.htm' },
+  { id: 'pack', t: 'Pack for the coast', s: 'Grippy shoes, windproof layer, rain shell, charger' },
+];
+const social = { db: null, user: null, me: null, hearts: {}, checks: {}, profiles: {}, shared: false };
+const LOCAL_ME = 'me';
+function loveCount(id) { let n = 0; for (const list of Object.values(social.hearts)) if (list.includes(id)) n++; return n; }
+function lovers(id) { return Object.entries(social.hearts).filter(([, l]) => l.includes(id)).map(([u]) => u); }
+function myHearts() { return social.hearts[social.me || LOCAL_ME] || []; }
+function nameOf(uid) {
+  if (uid === (social.me || LOCAL_ME)) return 'You';
+  return (social.profiles[uid] && social.profiles[uid].name) || 'Someone';
+}
+async function refreshProfiles() {
+  if (!social.user || !social.user.profiles) return;
+  const ids = Object.keys(social.hearts).concat(Object.values(social.checks).map((c) => c.by).filter(Boolean));
+  if (!ids.length) return;
+  try { social.profiles = await social.user.profiles([...new Set(ids)]); } catch { /* names stay generic */ }
+}
+function whoNode(uids) {
+  const box = el('span', { class: 'who' });
+  if (!uids.length) return box;
+  for (const u of uids.slice(0, 3)) {
+    const pr = social.profiles[u];
+    if (pr && pr.avatarUrl) box.append(el('img', { src: pr.avatarUrl, alt: '' }));
+  }
+  const names = uids.map(nameOf);
+  box.append(names.length === 1 ? (names[0] === 'You' ? 'You want to go' : `${names[0]} wants to go`) : `${names.join(' & ')} want to go`);
+  return box;
+}
+function renderCardSocial() {
+  if (!state.place) return;
+  const mine = myHearts().includes(state.place);
+  const b = $('#cardHeart');
+  b.setAttribute('aria-pressed', String(mine));
+  b.querySelector('span').textContent = mine ? 'On our list' : 'Want to go';
+  $('#cardWho').replaceWith(Object.assign(whoNode(lovers(state.place)), { id: 'cardWho' }));
+}
+function renderWish() {
+  const host = $('#wish');
+  const ids = [...new Set(Object.values(social.hearts).flat())];
+  const items = ids.map((id) => PLACES.find((p) => p.id === id)).filter(Boolean)
+    .sort((a, b) => a.near.s.day - b.near.s.day || a.near.m - b.near.m);
+  $('#wishCount').textContent = items.length ? `${items.length} SAVED` : '';
+  if (!items.length) {
+    host.replaceChildren(el('p', { class: 'empty', text: 'Nothing yet. Open any dot on the map or a place below and tap “Want to go”.' }));
+  } else {
+    host.replaceChildren(...items.map((p) => el('button', { onclick: () => openPlace(p) }, [
+      el('span', { class: `glyph ${p.kind}`, 'aria-hidden': 'true' }),
+      el('span', { class: 'pn' }, [p.name, el('span', { class: 'pd', text: `${DAYS[p.near.s.day].dw} · near ${p.near.s.n.split(/[:+(→]/)[0].trim()}` })]),
+      whoNode(lovers(p.id)),
+    ])));
+  }
+  $('#wishNote').textContent = social.shared
+    ? 'Shared: anyone you share this page with sees the same hearts and ticks.'
+    : 'Saved on this device. Open it from the shared claude.ai link to sync hearts between your phones.';
+}
+function renderChecks() {
+  const host = $('#checks');
+  const done = CHECKS.filter((c) => social.checks[c.id] && social.checks[c.id].done).length;
+  $('#checkProg').textContent = `${done} OF ${CHECKS.length}`;
+  host.replaceChildren(...CHECKS.map((c) => {
+    const st = social.checks[c.id];
+    const by = st && st.done && st.by && social.shared ? ` · ticked by ${nameOf(st.by)}` : '';
+    return el('li', {}, el('label', {}, [
+      el('input', { type: 'checkbox', id: `chk-${c.id}`, checked: !!(st && st.done), onchange: (e) => toggleCheck(c.id, e.target.checked) }),
+      el('span', {}, [el('span', { class: 'ct', text: c.t }), el('span', { class: 'cs', text: c.s + by })]),
+      c.url ? el('a', { href: c.url, target: '_blank', rel: 'noopener', text: 'Book ↗', onclick: (e) => e.stopPropagation() }) : el('span'),
+    ]));
+  }));
+}
+function renderSocial() { renderWish(); renderChecks(); renderCardSocial(); renderPicks(); }
+function saveLocal() { try { localStorage.setItem('fogcity.social', JSON.stringify({ hearts: social.hearts[LOCAL_ME] || [], checks: social.checks })); } catch { /* ignore */ } }
+async function toggleHeart(id) {
+  const me = social.me || LOCAL_ME;
+  const list = new Set(social.hearts[me] || []);
+  list.has(id) ? list.delete(id) : list.add(id);
+  social.hearts[me] = [...list];
+  renderSocial();
+  if (social.shared) {
+    try { await social.db.doc(`hearts/${me}`).set({ places: [...list], at: Date.now() }); }
+    catch (e) { console.warn('heart not saved', e && e.code); }
+  } else saveLocal();
+}
+async function toggleCheck(id, done) {
+  social.checks[id] = { done, by: social.me || LOCAL_ME, at: Date.now() };
+  renderChecks();
+  if (social.shared) {
+    try { await social.db.doc(`checks/${id}`).set(social.checks[id]); }
+    catch (e) { console.warn('check not saved', e && e.code); }
+  } else saveLocal();
+}
+async function initSocial() {
+  try {
+    const loc = JSON.parse(localStorage.getItem('fogcity.social') || '{}');
+    social.hearts[LOCAL_ME] = loc.hearts || [];
+    social.checks = loc.checks || {};
+  } catch { /* storage unavailable */ }
+  renderSocial();
+  $('#cardHeart').addEventListener('click', () => state.place && toggleHeart(state.place));
+  if (!window.claude || typeof window.claude.use !== 'function') return;
+  const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]).catch(() => [null, null]);
+  if (!db || !user) return;
+  const me = await user.id().catch(() => null);
+  if (!me) return;
+  Object.assign(social, { db, user, me, shared: true, hearts: {}, checks: {} });
+  renderSocial();
+  db.collection('hearts').onSnapshot(async (snap) => {
+    const next = {};
+    for (const d of snap.docs) { const v = d.data(); if (v && Array.isArray(v.places)) next[d.id] = v.places.filter((x) => typeof x === 'string'); }
+    social.hearts = next;
+    await refreshProfiles();
+    renderSocial();
+  }, (e) => console.warn('hearts feed', e && e.code));
+  db.collection('checks').onSnapshot(async (snap) => {
+    const next = {};
+    for (const d of snap.docs) { const v = d.data(); if (v) next[d.id] = { done: !!v.done, by: typeof v.by === 'string' ? v.by : null, at: v.at }; }
+    social.checks = next;
+    await refreshProfiles();
+    renderChecks();
+  }, (e) => console.warn('checks feed', e && e.code));
+}
+
+/* ───────────────────────── Karl the Fog ─────────────────────────
+   A ray-marched fog bank that rolls in from the Pacific and pours through the Golden Gate. */
+const FOG_FS = `
+uniform sampler2D colorTexture;
+uniform sampler2D depthTexture;
+uniform float time;
+uniform mat4 w2l;
+in vec2 v_textureCoordinates;
+float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
+float fbm(vec2 p){ float v = 0.0, a = 0.55; for (int i = 0; i < 4; i++){ v += a*vnoise(p); p = p*2.03 + 17.1; a *= 0.5; } return v; }
+float density(vec3 p){
+  float t = time;
+  vec2 q = (p.xy - vec2(t*11.0, -t*2.0)) * 0.00038;
+  float n = fbm(q);
+  float top = 90.0 + 200.0*n;
+  float h = smoothstep(top, top*0.25, p.z);
+  float ocean = smoothstep(-5200.0, -8200.0, p.x + 900.0*sin(t*0.03 + p.y*0.0003));
+  float gate = exp(-pow((p.y - 5650.0)/950.0, 2.0)) * smoothstep(2500.0, -4500.0, p.x);
+  float wisp = 0.22 * smoothstep(0.62, 0.9, n);
+  float region = exp(-dot(p.xy, p.xy) / (22000.0*22000.0));
+  float m = max(max(ocean, gate), wisp) * region;
+  return 0.0007 * h * smoothstep(0.38, 0.72, n + 0.3*m) * m;
+}
+void main(){
+  vec4 base = texture(colorTexture, v_textureCoordinates);
+  float depth = czm_readDepth(depthTexture, v_textureCoordinates);
+  vec4 ec = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
+  vec3 wc = (czm_inverseView * vec4(ec.xyz/ec.w, 1.0)).xyz;
+  vec3 cam = (w2l * vec4(czm_inverseView[3].xyz, 1.0)).xyz;
+  vec3 end = (w2l * vec4(wc, 1.0)).xyz;
+  vec3 d = end - cam; float dist = length(d); vec3 dir = d / max(dist, 1e-3);
+  if (depth >= 1.0 || dist > 40000.0) dist = 40000.0;
+  if (cam.z > 6000.0 && dir.z > -0.01) { out_FragColor = base; return; }
+  float t0 = 0.0, t1 = dist;
+  if (cam.z > 480.0) { if (dir.z >= 0.0) { out_FragColor = base; return; } t0 = (cam.z - 480.0) / -dir.z; }
+  if (t0 >= t1) { out_FragColor = base; return; }
+  const int N = 20;
+  float ds = (t1 - t0) / float(N);
+  float j = hash(gl_FragCoord.xy);
+  float T = 1.0; vec3 acc = vec3(0.0);
+  for (int i = 0; i < N; i++){
+    vec3 p = cam + dir * (t0 + (float(i) + j) * ds);
+    float k = density(p);
+    if (k > 0.0) {
+      float a = 1.0 - exp(-k * ds);
+      vec3 c = mix(vec3(0.80, 0.84, 0.87), vec3(0.97, 0.975, 0.98), smoothstep(0.0, 260.0, p.z));
+      acc += T * a * c; T *= 1.0 - a;
+      if (T < 0.03) break;
+    }
+  }
+  out_FragColor = vec4(base.rgb * T + acc, base.a);
+}`;
+let fogStage = null;
+function setFog(on) {
+  if (fogStage) { scene.postProcessStages.remove(fogStage); fogStage = null; }
+  if (on) {
+    const o = CITY.origin;
+    const w2l = C.Matrix4.inverseTransformation(C.Transforms.eastNorthUpToFixedFrame(C.Cartesian3.fromDegrees(o.lon0, o.lat0, 0)), new C.Matrix4());
+    fogStage = scene.postProcessStages.add(new C.PostProcessStage({ fragmentShader: FOG_FS, uniforms: { time: () => (performance.now() - t0) / 1000, w2l } }));
+  }
+  setSensor(state.sensor); // keep the sensor look last in the chain
+}
+
+/* ───────────────────────── Start ───────────────────────── */
+function initUi() {
+  renderBoard();
+  renderFilters();
+  renderLayerPanel();
+  renderSensors();
+  const fromHash = DAYS.findIndex((d) => `#${d.id}` === location.hash);
+  state.day = fromHash >= 0 ? fromHash : 0;
+  renderDay();
+  setNow('INBOUND', `${ORIGIN.code} → ${SFO.code} · SAT 14 NOV 9:30 AM`);
+  renderPlay();
+  updateClock(); setInterval(updateClock, 30000);
+  $('#btnPlay').addEventListener('click', () => { if (tour.active) tour.cancel(); else if (scene) tour.play(state.day); });
+  $('#btnDay').addEventListener('click', () => { tour.cancel(); state.stop = null; renderTimeline(); flyToDay(state.day); setNow(`${DAYS[state.day].dw} ${DAYS[state.day].dn} NOV`, DAYS[state.day].title); });
+  $('#btnHome').addEventListener('click', () => flyHome());
+  $('#btnOrbit').addEventListener('click', () => {
+    if (orbitOff) { stopOrbit(); return; }
+    const W = scene.canvas.clientWidth, H = scene.canvas.clientHeight;
+    const hit = scene.globe.pick(camera.getPickRay(new C.Cartesian2(W / 2, H / 2)), scene);
+    if (!hit) return;
+    const range = C.Cartesian3.distance(camera.positionWC, hit);
+    startOrbit(hit, range, C.Math.toDegrees(camera.pitch), 5);
+  });
+  $('#cardX').addEventListener('click', closeCard);
+  window.addEventListener('hashchange', () => {
+    const i = DAYS.findIndex((d) => `#${d.id}` === location.hash);
+    if (i >= 0 && i !== state.day) selectDay(i);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === 'Escape') { closeCard(); stopAll(); }
+    if (e.key === 'ArrowRight' && e.altKey) selectDay((state.day + 1) % 7);
+    if (e.key === 'ArrowLeft' && e.altKey) selectDay((state.day + 6) % 7);
+  });
+}
+
+initUi();
+initSocial();
+boot().then(() => {
+  makePins();
+  setSensor('day');
+  applyLayerVisibility();
+  drawDayRoute(state.day);
+  const g = $('#globe');
+  ['pointerdown', 'wheel'].forEach((ev) => g.addEventListener(ev, () => { stopOrbit(); tour.cancel(); }, { passive: true }));
+  let hudT = 0;
+  scene.postRender.addEventListener(() => { const n = performance.now(); if (n - hudT > 180) { hudT = n; updateHud(); } });
+  $('#boot').remove();
+  const go = () => {
+    if (state.stop) { const [d, i] = state.stop.split('-'); flyToStop(DAYS.find((x) => x.id === d).stops[+i]); }
+    else if (location.hash) selectDay(state.day);
+    else flyHome(4.5);
+  };
+  if (REDUCED) go(); else setTimeout(go, 1600);
+}).catch((err) => {
+  console.error(err);
+  const b = $('#boot');
+  b.className = 'err';
+  b.textContent = 'The 3D map could not start in this browser (WebGL is required). The plan on the right still works.';
+});
+
+</script>
+
+</body>
+</html>
