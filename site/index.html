@@ -3121,7 +3121,7 @@ function flyToStop(s, { duration = 2.8, orbit = true } = {}) {
     camera.flyToBoundingSphere(new C.BoundingSphere(target, 1), {
       offset: new C.HeadingPitchRange(heading, C.Math.toRadians(pitch), s.range),
       duration: REDUCED ? 0 : duration,
-      maximumHeight: Math.max(4000, s.range * 4),
+      maximumHeight: camera.positionCartographic.height < 50000 ? Math.max(4000, s.range * 4) : undefined,
       complete: () => { if (token === flightToken && orbit) startOrbit(target, s.range, pitch); done(true); },
       cancel: () => done(false),
     });
