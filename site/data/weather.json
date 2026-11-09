@@ -1,13 +1,20 @@
 {
- "updated": "2026-11-08T17:54+00:00",
+ "updated": "2026-11-09T22:17+00:00",
  "source": "api.weather.gov",
  "days": {
   "2026-11-14": {
-   "hi": 64,
-   "lo": 57,
-   "pop": 76,
-   "wind": "WSW 5 to 14 mph",
+   "hi": 63,
+   "lo": 56,
+   "pop": 79,
+   "wind": "SW 7 to 18 mph",
    "short": "Chance Light Rain"
+  },
+  "2026-11-15": {
+   "hi": 61,
+   "lo": 54,
+   "pop": 79,
+   "wind": "SW 14 to 18 mph",
+   "short": "Light Rain"
   }
  }
 }
