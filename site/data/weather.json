@@ -1,48 +1,55 @@
 {
- "updated": "2026-11-13T19:37+00:00",
+ "updated": "2026-11-14T17:58+00:00",
  "source": "api.weather.gov",
  "days": {
   "2026-11-14": {
    "hi": 63,
    "lo": 55,
-   "pop": 25,
-   "wind": "S 6 mph",
-   "short": "Partly Sunny"
+   "pop": 18,
+   "wind": "S 5 to 8 mph",
+   "short": "Slight Chance Rain Showers"
   },
   "2026-11-15": {
    "hi": 62,
    "lo": 53,
-   "pop": 89,
-   "wind": "S 9 to 15 mph",
+   "pop": 96,
+   "wind": "S 10 to 16 mph",
    "short": "Light Rain"
   },
   "2026-11-16": {
    "hi": 60,
-   "lo": 50,
-   "pop": 26,
-   "wind": "NW 5 to 15 mph",
-   "short": "Chance Light Rain then Mostly Sunny"
+   "lo": 49,
+   "pop": 33,
+   "wind": "WNW 5 to 13 mph",
+   "short": "Chance Light Rain"
   },
   "2026-11-17": {
    "hi": 59,
    "lo": 54,
-   "pop": 95,
-   "wind": "NW 5 to 16 mph",
+   "pop": 98,
+   "wind": "NW 3 to 13 mph",
    "short": "Sunny"
   },
   "2026-11-18": {
    "hi": 59,
    "lo": 51,
-   "pop": 95,
-   "wind": "SW 20 to 23 mph",
-   "short": "Light Rain"
+   "pop": 98,
+   "wind": "SW 21 to 26 mph",
+   "short": "Rain"
   },
   "2026-11-19": {
-   "hi": 57,
+   "hi": 56,
    "lo": 49,
-   "pop": 40,
-   "wind": "N 10 to 16 mph",
-   "short": "Chance Light Rain"
+   "pop": 56,
+   "wind": "WNW 10 to 16 mph",
+   "short": "Light Rain Likely"
+  },
+  "2026-11-20": {
+   "hi": 58,
+   "lo": 49,
+   "pop": 13,
+   "wind": "NE 5 to 8 mph",
+   "short": "Mostly Sunny"
   }
  }
 }
